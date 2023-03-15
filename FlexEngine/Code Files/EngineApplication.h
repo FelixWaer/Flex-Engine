@@ -15,6 +15,12 @@ public:
     }
 
 private:
+    /*Structs*/
+    struct QueueFamilyIndices
+    {
+        uint32_t graphicsFamily;
+    };
+
     /*Main Methods*/
     void initWindow();
 
@@ -26,6 +32,11 @@ private:
 
     /*Methods*/
     void createInstance();
+    void pickPhysicalDevice();
+    bool isDeviceSuitable(VkPhysicalDevice device);
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+
+    /*Debug Methods*/
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -34,13 +45,14 @@ private:
     void setupDebugMessenger();
     static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
+
     /*Variables*/
     GLFWwindow* window;
-
     VkInstance instance;
-
     VkDebugUtilsMessengerEXT debugMessenger;
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
+
 };

@@ -26,7 +26,7 @@ void checkForExtensionsSupport()
     }
 }
 
-/*Validation checking*/
+/*-------------Validation Checking-------------*/
 const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
 
 bool checkValidationLayerSupport()
@@ -75,6 +75,7 @@ std::vector<const char*> getRequiredExtensions()
     return extensions;
 }
 
+/*-------------Debug Messenger Functions-------------*/
 VkResult CreateDebugUtilsMessengerEXT
 (VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
     const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
@@ -99,7 +100,7 @@ void destroyDebugUtilsMessengerEXT
     }
 }
 
-/*Methods Definition*/
+/*-------------Methods-------------*/
 void HelloTriangleApplication::initWindow()
 {
 	glfwInit();
@@ -115,6 +116,7 @@ void HelloTriangleApplication::initVulkan()
 {
     createInstance();
     setupDebugMessenger();
+    pickPhysicalDevice();
 }
 
 
@@ -191,6 +193,53 @@ void HelloTriangleApplication::createInstance()
 	}
 }
 
+void HelloTriangleApplication::pickPhysicalDevice()
+{
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+
+    if (deviceCount == 0)
+    {
+        throw std::runtime_error("failed to load GPU with Vulkan support");
+    }
+
+    std::vector<VkPhysicalDevice> devices(deviceCount);
+    vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+
+    for (const auto& device : devices)
+    {
+	    if (isDeviceSuitable(device))
+	    {
+            physicalDevice = device;
+            break;
+	    }
+    }
+
+    if (physicalDevice == VK_NULL_HANDLE)
+    {
+        throw std::runtime_error("failed to fin a suitable GPU!");
+    }
+}
+
+bool HelloTriangleApplication::isDeviceSuitable(VkPhysicalDevice device)
+{
+    VkPhysicalDeviceProperties deviceProperties;
+    vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+    VkPhysicalDeviceFeatures deviceFeatures;
+    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+    return true;
+}
+
+HelloTriangleApplication::QueueFamilyIndices HelloTriangleApplication::findQueueFamilies(VkPhysicalDevice device)
+{
+    QueueFamilyIndices indices;
+
+    return indices;
+}
+
+/*-------------Debug Methods-------------*/
 VkBool32 HelloTriangleApplication::debugCallback
    (VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, 
     VkDebugUtilsMessageTypeFlagsEXT messageType, 
