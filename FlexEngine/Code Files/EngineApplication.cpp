@@ -6,8 +6,10 @@
 
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
+const bool debugMode = false;
 #else
 const bool enableValidationLayers = true;
+const bool debugMode = true;
 #endif
 
 void checkForExtensionsSupport()
@@ -73,6 +75,29 @@ std::vector<const char*> getRequiredExtensions()
     return extensions;
 }
 
+VkResult CreateDebugUtilsMessengerEXT
+(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+    const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
+{
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    if (func != nullptr) {
+        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+    }
+    else {
+        return VK_ERROR_EXTENSION_NOT_PRESENT;
+    }
+}
+
+void destroyDebugUtilsMessengerEXT
+   (VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
+	const VkAllocationCallbacks* pAllocator)
+{
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+    if (func != nullptr)
+    {
+        func(instance, debugMessenger, pAllocator);
+    }
+}
 
 /*Methods Definition*/
 void HelloTriangleApplication::initWindow()
@@ -103,6 +128,11 @@ void HelloTriangleApplication::mainLoop()
 
 void HelloTriangleApplication::cleanup()
 {
+	if (enableValidationLayers)
+	{
+        destroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+	}
+
 	vkDestroyInstance(instance, nullptr);
 
 	glfwDestroyWindow(window);
@@ -132,14 +162,20 @@ void HelloTriangleApplication::createInstance()
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
 
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
 	if (enableValidationLayers)
 	{
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
+
+        populateDebugMessengerCreateInfo(debugCreateInfo);
+        createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
 	}
 	else
 	{
         createInfo.enabledLayerCount = 0;
+
+        createInfo.pNext = nullptr;
 	}
 
     VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
@@ -149,7 +185,10 @@ void HelloTriangleApplication::createInstance()
         throw std::runtime_error("failed to create instance!");
     }
 
-    checkForExtensionsSupport();
+	if (debugMode)
+	{
+        checkForExtensionsSupport();
+	}
 }
 
 VkBool32 HelloTriangleApplication::debugCallback
@@ -166,4 +205,26 @@ VkBool32 HelloTriangleApplication::debugCallback
 void HelloTriangleApplication::setupDebugMessenger()
 {
     if (!enableValidationLayers) return;
+
+    VkDebugUtilsMessengerCreateInfoEXT createInfoMessenger;
+    populateDebugMessengerCreateInfo(createInfoMessenger);
+
+    if (CreateDebugUtilsMessengerEXT(instance, &createInfoMessenger, nullptr, &debugMessenger) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to set up debug messenger!");
+    }
+}
+
+void HelloTriangleApplication::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
+{
+    createInfo = {};
+
+    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
+							   | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+							   | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
+							   | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+							   | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    createInfo.pfnUserCallback = debugCallback;
 }
