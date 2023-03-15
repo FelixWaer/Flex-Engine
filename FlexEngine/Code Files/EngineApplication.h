@@ -3,7 +3,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-class vector;
+struct QueueFamilyIndices;
 
 class HelloTriangleApplication {
 public:
@@ -15,11 +15,6 @@ public:
     }
 
 private:
-    /*Structs*/
-    struct QueueFamilyIndices
-    {
-        uint32_t graphicsFamily;
-    };
 
     /*Main Methods*/
     void initWindow();
@@ -35,6 +30,7 @@ private:
     void pickPhysicalDevice();
     bool isDeviceSuitable(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+    void createLogicalDevice();
 
     /*Debug Methods*/
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -51,6 +47,8 @@ private:
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    VkDevice device;
+    VkQueue graphicsQueue;
 
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
