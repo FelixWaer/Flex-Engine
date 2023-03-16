@@ -1,7 +1,10 @@
 #pragma once
 
+#define VK_USE_PLATFORM_WIN32_KHR
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
 
 struct QueueFamilyIndices;
 
@@ -31,6 +34,7 @@ private:
     bool isDeviceSuitable(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     void createLogicalDevice();
+    void createSurface();
 
     /*Debug Methods*/
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -49,6 +53,8 @@ private:
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkDevice device;
     VkQueue graphicsQueue;
+    VkQueue presentQueue;
+    VkSurfaceKHR surface;
 
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
