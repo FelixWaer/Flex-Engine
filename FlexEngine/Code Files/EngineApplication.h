@@ -39,6 +39,7 @@ private:
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     void createLogicalDevice();
     void createSurface();
+    void createImageViews();
 
     //Swap Chain Methods
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
@@ -47,9 +48,13 @@ private:
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     void createSwapChain();
 
+    //Graphic Pipeline Methods
+    void createGraphicsPipeline();
+
     //Extension Support Methods
-    void checkForExtensionsSupport();
-    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+    static std::vector<const char*> getRequiredExtensions();
+    static void checkForExtensionsSupport();
+    static bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 
     //Debug Methods
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -59,6 +64,12 @@ private:
         void* pUserData);
     void setupDebugMessenger();
     static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+    VkResult CreateDebugUtilsMessengerEXT(
+        VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+        const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
+    void destroyDebugUtilsMessengerEXT
+    (VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
+        const VkAllocationCallbacks* pAllocator);
 
 
     //Variables
@@ -76,9 +87,10 @@ private:
     std::vector<VkImage> swapChainImages;
     VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
+    std::vector<VkImageView> swapChainImageViews;
 
 
-    const uint32_t WIDTH = 800;
-    const uint32_t HEIGHT = 600;
+    const uint32_t WIDTH = 1200;
+    const uint32_t HEIGHT = 900;
 
 };

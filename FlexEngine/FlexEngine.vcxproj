@@ -25,6 +25,10 @@
   <ItemGroup>
     <ClInclude Include="Code Files\EngineApplication.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Code Files\Shader\Vertex_Shader.frag" />
+    <None Include="Code Files\Shader\Vertex_Shader.vert" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
