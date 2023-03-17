@@ -6,7 +6,10 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
+#include <vector>
+
 struct QueueFamilyIndices;
+struct SwapChainSupportDetails;
 
 class HelloTriangleApplication {
 public:
@@ -19,7 +22,7 @@ public:
 
 private:
 
-    /*Main Methods*/
+    //Main Methods
     void initWindow();
 
     void initVulkan();
@@ -28,15 +31,27 @@ private:
 
     void cleanup();
 
-    /*Methods*/
+    //Method
     void createInstance();
     void pickPhysicalDevice();
     bool isDeviceSuitable(VkPhysicalDevice device);
+    bool checkValidationLayerSupport();
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     void createLogicalDevice();
     void createSurface();
 
-    /*Debug Methods*/
+    //Swap Chain Methods
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+    void createSwapChain();
+
+    //Extension Support Methods
+    void checkForExtensionsSupport();
+    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+
+    //Debug Methods
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -46,7 +61,7 @@ private:
     static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
 
-    /*Variables*/
+    //Variables
     GLFWwindow* window;
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
@@ -55,6 +70,13 @@ private:
     VkQueue graphicsQueue;
     VkQueue presentQueue;
     VkSurfaceKHR surface;
+
+    //Swap Chain Variables
+    VkSwapchainKHR swapChain;
+    std::vector<VkImage> swapChainImages;
+    VkFormat swapChainImageFormat;
+    VkExtent2D swapChainExtent;
+
 
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
