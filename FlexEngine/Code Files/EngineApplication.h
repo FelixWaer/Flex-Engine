@@ -7,6 +7,7 @@
 #include <GLFW/glfw3native.h>
 
 #include <vector>
+#include <string>
 
 struct QueueFamilyIndices;
 struct SwapChainSupportDetails;
@@ -50,6 +51,8 @@ private:
 
     //Graphic Pipeline Methods
     void createGraphicsPipeline();
+    static std::vector<char> readFile(const std::string& fileName);
+    VkShaderModule createShaderModule(const std::vector<char>& code);
 
     //Extension Support Methods
     static std::vector<const char*> getRequiredExtensions();
@@ -90,7 +93,7 @@ private:
     std::vector<VkImageView> swapChainImageViews;
 
 
-    const uint32_t WIDTH = 1200;
-    const uint32_t HEIGHT = 900;
+    const uint32_t WIDTH = 800;
+    const uint32_t HEIGHT = 600;
 
 };
