@@ -84,6 +84,7 @@ private:
     VkQueue graphicsQueue;
     VkQueue presentQueue;
     VkSurfaceKHR surface;
+    VkPipelineLayout pipelineLayout;
 
     //Swap Chain Variables
     VkSwapchainKHR swapChain;
