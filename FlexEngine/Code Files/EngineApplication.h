@@ -41,6 +41,7 @@ private:
     void createLogicalDevice();
     void createSurface();
     void createImageViews();
+    void createRenderPass();
 
     //Swap Chain Methods
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
@@ -84,6 +85,7 @@ private:
     VkQueue graphicsQueue;
     VkQueue presentQueue;
     VkSurfaceKHR surface;
+    VkRenderPass renderPass;
     VkPipelineLayout pipelineLayout;
 
     //Swap Chain Variables
