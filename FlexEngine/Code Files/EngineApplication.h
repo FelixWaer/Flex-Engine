@@ -42,6 +42,10 @@ private:
     void createSurface();
     void createImageViews();
     void createRenderPass();
+    void createFramebuffers();
+    void createCommandPool();
+    void createCommandBuffer();
+    void recordCommandBuffer(VkCommandBuffer theCommandBuffer, uint32_t imageIndex);
 
     //Swap Chain Methods
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
@@ -87,6 +91,10 @@ private:
     VkSurfaceKHR surface;
     VkRenderPass renderPass;
     VkPipelineLayout pipelineLayout;
+    VkPipeline graphicsPipeline;
+    std::vector<VkFramebuffer> swapChainFramebuffers;
+    VkCommandPool commandPool;
+    VkCommandBuffer commandBuffer;
 
     //Swap Chain Variables
     VkSwapchainKHR swapChain;
