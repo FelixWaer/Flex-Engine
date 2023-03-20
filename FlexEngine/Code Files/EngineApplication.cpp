@@ -1,6 +1,6 @@
 #include "EngineApplication.h"
-
 #include <iostream>
+
 #include <cstring>
 #include <vector>
 #include <optional>
@@ -59,7 +59,7 @@ void HelloTriangleApplication::initWindow()
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-	window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+	window = glfwCreateWindow(WIDTH, HEIGHT, "FlexEngine", nullptr, nullptr);
     
 }
 
@@ -77,6 +77,7 @@ void HelloTriangleApplication::initVulkan()
     createFramebuffers();
     createCommandPool();
     createCommandBuffer();
+    createSyncObjects();
 }
 
 
@@ -85,11 +86,16 @@ void HelloTriangleApplication::mainLoop()
 	while (!glfwWindowShouldClose(window))
 	{
 		glfwPollEvents();
+        drawFrame();
 	}
+    vkDeviceWaitIdle(device);
 }
 
 void HelloTriangleApplication::cleanup()
 {
+    vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
+    vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
+    vkDestroyFence(device, inFlightFence, nullptr);
     vkDestroyCommandPool(device, commandPool, nullptr);
 
     for (auto framebuffer : swapChainFramebuffers)
@@ -395,12 +401,24 @@ void HelloTriangleApplication::createRenderPass()
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
 
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;;
+    
+
+
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = 1;
     renderPassInfo.pAttachments = &colorAttachment;
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
 
     if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS)
     {
@@ -508,6 +526,67 @@ void HelloTriangleApplication::recordCommandBuffer(VkCommandBuffer theCommandBuf
     if (vkEndCommandBuffer(theCommandBuffer) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to record command buffer!");
+    }
+}
+
+void HelloTriangleApplication::drawFrame()
+{
+    vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
+    vkResetFences(device, 1, &inFlightFence);
+
+    uint32_t imageIndex;
+    vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+    vkResetCommandBuffer(commandBuffer, 0);
+    recordCommandBuffer(commandBuffer, imageIndex);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    VkSemaphore waitSemaphore[] = { imageAvailableSemaphore };
+    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemaphore;
+    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+
+    VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+
+    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to submit draw command buffer!");
+    }
+
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemaphores;
+    VkSwapchainKHR swapChains[] = { swapChain };
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapChains;
+    presentInfo.pImageIndices = &imageIndex;
+    presentInfo.pResults = nullptr;
+
+    vkQueuePresentKHR(presentQueue, &presentInfo);
+}
+
+void HelloTriangleApplication::createSyncObjects()
+{
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphore) != VK_SUCCESS ||
+        vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphore) != VK_SUCCESS ||
+        vkCreateFence(device, &fenceInfo, nullptr, &inFlightFence) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create semaphores!");
     }
 }
 
@@ -808,8 +887,11 @@ std::vector<char> HelloTriangleApplication::readFile(const std::string& fileName
     file.read(buffer.data(), fileSize);
     file.close();
 
-    std::cout << fileName << "\n";
-    std::cout << buffer.size() << "\n";
+    if (debugMode)
+    {
+        std::cout << fileName << "\n";
+        std::cout << buffer.size() << "\n";
+    }
 
     return buffer;
 }
@@ -927,7 +1009,7 @@ void HelloTriangleApplication::populateDebugMessengerCreateInfo(VkDebugUtilsMess
 }
 
 VkResult HelloTriangleApplication::CreateDebugUtilsMessengerEXT
-(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+(VkInstance theInstance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
     const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
     auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -940,7 +1022,7 @@ VkResult HelloTriangleApplication::CreateDebugUtilsMessengerEXT
 }
 
 void HelloTriangleApplication::destroyDebugUtilsMessengerEXT
-(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
+(VkInstance theInstance, VkDebugUtilsMessengerEXT theDebugMessenger,
     const VkAllocationCallbacks* pAllocator)
 {
     auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");

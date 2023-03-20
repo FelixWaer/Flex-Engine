@@ -36,7 +36,7 @@ private:
     void createInstance();
     void pickPhysicalDevice();
     bool isDeviceSuitable(VkPhysicalDevice device);
-    bool checkValidationLayerSupport();
+    static bool checkValidationLayerSupport();
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     void createLogicalDevice();
     void createSurface();
@@ -46,11 +46,13 @@ private:
     void createCommandPool();
     void createCommandBuffer();
     void recordCommandBuffer(VkCommandBuffer theCommandBuffer, uint32_t imageIndex);
+    void drawFrame();
+    void createSyncObjects();
 
     //Swap Chain Methods
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
-    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+    static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+    static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     void createSwapChain();
 
@@ -73,10 +75,10 @@ private:
     void setupDebugMessenger();
     static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
     VkResult CreateDebugUtilsMessengerEXT(
-        VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+        VkInstance theInstance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
         const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
     void destroyDebugUtilsMessengerEXT
-    (VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
+    (VkInstance theInstance, VkDebugUtilsMessengerEXT theDebugMessenger,
         const VkAllocationCallbacks* pAllocator);
 
 
@@ -95,6 +97,9 @@ private:
     std::vector<VkFramebuffer> swapChainFramebuffers;
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
+    VkSemaphore imageAvailableSemaphore;
+    VkSemaphore renderFinishedSemaphore;
+    VkFence inFlightFence;
 
     //Swap Chain Variables
     VkSwapchainKHR swapChain;
