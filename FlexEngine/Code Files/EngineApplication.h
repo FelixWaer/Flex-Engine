@@ -48,6 +48,7 @@ private:
     void recordCommandBuffer(VkCommandBuffer theCommandBuffer, uint32_t imageIndex);
     void drawFrame();
     void createSyncObjects();
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
     //Swap Chain Methods
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
@@ -102,6 +103,7 @@ private:
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
+    bool framebufferRezised = false;
 
     //Swap Chain Variables
     VkSwapchainKHR swapChain;

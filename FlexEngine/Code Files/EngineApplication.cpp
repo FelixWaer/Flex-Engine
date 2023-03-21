@@ -52,10 +52,11 @@ void FlexEngine::initWindow()
 	glfwInit();
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
 	window = glfwCreateWindow(WIDTH, HEIGHT, "FlexEngine", nullptr, nullptr);
-    
+    glfwSetWindowUserPointer(window, this);
+    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 }
 
 void FlexEngine::initVulkan()
@@ -525,8 +526,8 @@ void FlexEngine::recordCommandBuffer(VkCommandBuffer theCommandBuffer, uint32_t 
 void FlexEngine::drawFrame()
 {
     vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-    uint32_t imageIndex;
 
+    uint32_t imageIndex;
     VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
@@ -576,8 +577,9 @@ void FlexEngine::drawFrame()
     presentInfo.pResults = nullptr;
 
     result = vkQueuePresentKHR(presentQueue, &presentInfo);
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferRezised)
     {
+        framebufferRezised = false;
         recreateSwapChain();
     }
     else if (result != VK_SUCCESS)
@@ -612,6 +614,11 @@ void FlexEngine::createSyncObjects()
     }
 }
 
+void FlexEngine::framebufferResizeCallback(GLFWwindow* window, int width, int height)
+{
+    auto app = reinterpret_cast<FlexEngine*>(glfwGetWindowUserPointer(window));
+    app->framebufferRezised = true;
+}
 
 /*---------------------------------*/
 /*-------Swap Chain Methods--------*/
