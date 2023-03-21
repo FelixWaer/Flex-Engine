@@ -12,7 +12,7 @@
 struct QueueFamilyIndices;
 struct SwapChainSupportDetails;
 
-class HelloTriangleApplication {
+class FlexEngine {
 public:
     void run() {
         initWindow();
@@ -44,7 +44,7 @@ private:
     void createRenderPass();
     void createFramebuffers();
     void createCommandPool();
-    void createCommandBuffer();
+    void createCommandBuffers();
     void recordCommandBuffer(VkCommandBuffer theCommandBuffer, uint32_t imageIndex);
     void drawFrame();
     void createSyncObjects();
@@ -55,6 +55,8 @@ private:
     static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     void createSwapChain();
+    void recreateSwapChain();
+    void cleanupSwapChain();
 
     //Graphic Pipeline Methods
     void createGraphicsPipeline();
@@ -96,10 +98,10 @@ private:
     VkPipeline graphicsPipeline;
     std::vector<VkFramebuffer> swapChainFramebuffers;
     VkCommandPool commandPool;
-    VkCommandBuffer commandBuffer;
-    VkSemaphore imageAvailableSemaphore;
-    VkSemaphore renderFinishedSemaphore;
-    VkFence inFlightFence;
+    std::vector<VkCommandBuffer> commandBuffers;
+    std::vector<VkSemaphore> imageAvailableSemaphores;
+    std::vector<VkSemaphore> renderFinishedSemaphores;
+    std::vector<VkFence> inFlightFences;
 
     //Swap Chain Variables
     VkSwapchainKHR swapChain;
@@ -111,5 +113,7 @@ private:
 
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
+    const int maxFramesInFlight = 2;
+    uint32_t currentFrame = 0;
 
 };

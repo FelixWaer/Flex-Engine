@@ -5,7 +5,7 @@
 
 int main()
 {
-    HelloTriangleApplication app;
+    FlexEngine app;
 
     try 
     {

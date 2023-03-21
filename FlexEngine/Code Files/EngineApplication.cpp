@@ -45,14 +45,9 @@ const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation
 const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
 /*---------------------------------*/
-/*-------Validation checking-------*/
-/*---------------------------------*/
-
-
-/*---------------------------------*/
 /*----------Main Methods-----------*/
 /*---------------------------------*/
-void HelloTriangleApplication::initWindow()
+void FlexEngine::initWindow()
 {
 	glfwInit();
 
@@ -63,7 +58,7 @@ void HelloTriangleApplication::initWindow()
     
 }
 
-void HelloTriangleApplication::initVulkan()
+void FlexEngine::initVulkan()
 {
     createInstance();
     setupDebugMessenger();
@@ -76,13 +71,15 @@ void HelloTriangleApplication::initVulkan()
     createGraphicsPipeline();
     createFramebuffers();
     createCommandPool();
-    createCommandBuffer();
+    createCommandBuffers();
     createSyncObjects();
+
 }
 
 
-void HelloTriangleApplication::mainLoop()
+void FlexEngine::mainLoop()
 {
+
 	while (!glfwWindowShouldClose(window))
 	{
 		glfwPollEvents();
@@ -91,28 +88,22 @@ void HelloTriangleApplication::mainLoop()
     vkDeviceWaitIdle(device);
 }
 
-void HelloTriangleApplication::cleanup()
+void FlexEngine::cleanup()
 {
-    vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
-    vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
-    vkDestroyFence(device, inFlightFence, nullptr);
-    vkDestroyCommandPool(device, commandPool, nullptr);
-
-    for (auto framebuffer : swapChainFramebuffers)
-    {
-        vkDestroyFramebuffer(device, framebuffer, nullptr);
-    }
+    cleanupSwapChain();
 
     vkDestroyPipeline(device, graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
     vkDestroyRenderPass(device, renderPass, nullptr);
 
-    for (auto imageView : swapChainImageViews)
+    for (size_t i = 0; i < maxFramesInFlight; i++)
     {
-        vkDestroyImageView(device, imageView, nullptr);
+        vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
+        vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
+        vkDestroyFence(device, inFlightFences[i], nullptr);
     }
 
-    vkDestroySwapchainKHR(device, swapChain, nullptr);
+    vkDestroyCommandPool(device, commandPool, nullptr);
     vkDestroyDevice(device, nullptr);
 
 	if (enableValidationLayers)
@@ -130,7 +121,7 @@ void HelloTriangleApplication::cleanup()
 /*---------------------------------*/
 /*-------------Methods-------------*/
 /*---------------------------------*/
-void HelloTriangleApplication::createInstance()
+void FlexEngine::createInstance()
 {
 	if (enableValidationLayers && !checkValidationLayerSupport())
 	{
@@ -175,15 +166,10 @@ void HelloTriangleApplication::createInstance()
     {
         throw std::runtime_error("failed to create instance!");
     }
-
-	if (debugMode)
-	{
-        checkForExtensionsSupport();
-	}
 }
 
 //Picks what GPU to use
-void HelloTriangleApplication::pickPhysicalDevice()
+void FlexEngine::pickPhysicalDevice()
 {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -212,7 +198,7 @@ void HelloTriangleApplication::pickPhysicalDevice()
 }
 
 //Checks if the GPU's queue families are suitable
-bool HelloTriangleApplication::isDeviceSuitable(VkPhysicalDevice device)
+bool FlexEngine::isDeviceSuitable(VkPhysicalDevice device)
 {
 	//find queue families and checks if its suitable
     QueueFamilyIndices indices = findQueueFamilies(device);
@@ -231,7 +217,7 @@ bool HelloTriangleApplication::isDeviceSuitable(VkPhysicalDevice device)
 }
 
 //Finds the queue families in the GPU that is needed
-QueueFamilyIndices HelloTriangleApplication::findQueueFamilies(VkPhysicalDevice device)
+QueueFamilyIndices FlexEngine::findQueueFamilies(VkPhysicalDevice device)
 {
     QueueFamilyIndices indices;
 
@@ -267,7 +253,7 @@ QueueFamilyIndices HelloTriangleApplication::findQueueFamilies(VkPhysicalDevice 
     return indices;
 }
 
-void HelloTriangleApplication::createLogicalDevice()
+void FlexEngine::createLogicalDevice()
 {
     QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
@@ -312,9 +298,14 @@ void HelloTriangleApplication::createLogicalDevice()
 
     vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
     vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+
+    if (debugMode)
+    {
+        checkForExtensionsSupport();
+    }
 }
 
-void HelloTriangleApplication::createSurface()
+void FlexEngine::createSurface()
 {
 	if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS)
 	{
@@ -322,7 +313,7 @@ void HelloTriangleApplication::createSurface()
 	}
 }
 
-bool HelloTriangleApplication::checkValidationLayerSupport()
+bool FlexEngine::checkValidationLayerSupport()
 {
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -352,7 +343,7 @@ bool HelloTriangleApplication::checkValidationLayerSupport()
     return true;
 }
 
-void HelloTriangleApplication::createImageViews()
+void FlexEngine::createImageViews()
 {
     swapChainImageViews.resize(swapChainImages.size());
 
@@ -380,7 +371,7 @@ void HelloTriangleApplication::createImageViews()
     }
 }
 
-void HelloTriangleApplication::createRenderPass()
+void FlexEngine::createRenderPass()
 {
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = swapChainImageFormat;
@@ -426,7 +417,7 @@ void HelloTriangleApplication::createRenderPass()
     }
 }
 
-void HelloTriangleApplication::createFramebuffers()
+void FlexEngine::createFramebuffers()
 {
     swapChainFramebuffers.resize(swapChainImageViews.size());
 
@@ -451,7 +442,7 @@ void HelloTriangleApplication::createFramebuffers()
     }
 }
 
-void HelloTriangleApplication::createCommandPool()
+void FlexEngine::createCommandPool()
 {
     QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
 
@@ -466,21 +457,23 @@ void HelloTriangleApplication::createCommandPool()
     }
 }
 
-void HelloTriangleApplication::createCommandBuffer()
+void FlexEngine::createCommandBuffers()
 {
+    commandBuffers.resize(maxFramesInFlight);
+
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.commandPool = commandPool;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = 1;
+    allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
 
-    if (vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer) != VK_SUCCESS)
+    if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to allocate command buffer!");
     }
 }
 
-void HelloTriangleApplication::recordCommandBuffer(VkCommandBuffer theCommandBuffer, uint32_t imageIndex)
+void FlexEngine::recordCommandBuffer(VkCommandBuffer theCommandBuffer, uint32_t imageIndex)
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -513,13 +506,13 @@ void HelloTriangleApplication::recordCommandBuffer(VkCommandBuffer theCommandBuf
     viewport.height = static_cast<float>(swapChainExtent.height);
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
-    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+    vkCmdSetViewport(theCommandBuffer, 0, 1, &viewport);
 
     VkRect2D scissor{};
     scissor.offset = { 0, 0 };
     scissor.extent = swapChainExtent;
-    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-    vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+    vkCmdSetScissor(theCommandBuffer, 0, 1, &scissor);
+    vkCmdDraw(theCommandBuffer, 3, 1, 0, 0);
 
     vkCmdEndRenderPass(theCommandBuffer);
 
@@ -529,33 +522,45 @@ void HelloTriangleApplication::recordCommandBuffer(VkCommandBuffer theCommandBuf
     }
 }
 
-void HelloTriangleApplication::drawFrame()
+void FlexEngine::drawFrame()
 {
-    vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
-    vkResetFences(device, 1, &inFlightFence);
-
+    vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 
-    vkResetCommandBuffer(commandBuffer, 0);
-    recordCommandBuffer(commandBuffer, imageIndex);
+    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        recreateSwapChain();
+        return;
+    }
+    else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+    {
+        throw std::runtime_error("failed to acquire swap chain image!");
+    }
+
+    vkResetFences(device, 1, &inFlightFences[currentFrame]);
+
+    vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+    vkResetCommandBuffer(commandBuffers[currentFrame], 0);
+    recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-    VkSemaphore waitSemaphore[] = { imageAvailableSemaphore };
+    VkSemaphore waitSemaphore[] = { imageAvailableSemaphores[currentFrame]};
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphore;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
+    submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
 
-    VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };
+    VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame]};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS)
+    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to submit draw command buffer!");
     }
@@ -570,11 +575,25 @@ void HelloTriangleApplication::drawFrame()
     presentInfo.pImageIndices = &imageIndex;
     presentInfo.pResults = nullptr;
 
-    vkQueuePresentKHR(presentQueue, &presentInfo);
+    result = vkQueuePresentKHR(presentQueue, &presentInfo);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+    {
+        recreateSwapChain();
+    }
+    else if (result != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to present swap chain image");
+    }
+
+    currentFrame = (currentFrame + 1) % maxFramesInFlight;
 }
 
-void HelloTriangleApplication::createSyncObjects()
+void FlexEngine::createSyncObjects()
 {
+    imageAvailableSemaphores.resize(maxFramesInFlight);
+    renderFinishedSemaphores.resize(maxFramesInFlight);
+    inFlightFences.resize(maxFramesInFlight);
+
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -582,11 +601,14 @@ void HelloTriangleApplication::createSyncObjects()
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphore) != VK_SUCCESS ||
-        vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphore) != VK_SUCCESS ||
-        vkCreateFence(device, &fenceInfo, nullptr, &inFlightFence) != VK_SUCCESS)
+    for (size_t i = 0; i < maxFramesInFlight; i++)
     {
-        throw std::runtime_error("failed to create semaphores!");
+        if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
+            vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create semaphores!");
+        }
     }
 }
 
@@ -596,7 +618,7 @@ void HelloTriangleApplication::createSyncObjects()
 /*---------------------------------*/
 
 //Check if swap chain is compatible with our window surface
-SwapChainSupportDetails HelloTriangleApplication::querySwapChainSupport(VkPhysicalDevice device)
+SwapChainSupportDetails FlexEngine::querySwapChainSupport(VkPhysicalDevice device)
 {
     SwapChainSupportDetails details;
 
@@ -624,7 +646,7 @@ SwapChainSupportDetails HelloTriangleApplication::querySwapChainSupport(VkPhysic
 }
 
 //Checks for if swap chain supports best possible surface format, else takes the first surface format available
-VkSurfaceFormatKHR HelloTriangleApplication::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
+VkSurfaceFormatKHR FlexEngine::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
 {
 	for (const auto& availableFormat : availableFormats)
 	{
@@ -638,7 +660,7 @@ VkSurfaceFormatKHR HelloTriangleApplication::chooseSwapSurfaceFormat(const std::
 }
 
 //Checks for if swap chain supports best possible present mode, else takes the FIFO present mode that is always available
-VkPresentModeKHR HelloTriangleApplication::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
+VkPresentModeKHR FlexEngine::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
 {
 	for (const auto& availablePresentMode : availablePresentModes)
 	{
@@ -651,7 +673,7 @@ VkPresentModeKHR HelloTriangleApplication::chooseSwapPresentMode(const std::vect
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkExtent2D HelloTriangleApplication::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities)
+VkExtent2D FlexEngine::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities)
 {
 	if (capabilities.currentExtent.width != (std::numeric_limits<uint32_t>::max)())
 	{
@@ -676,7 +698,7 @@ VkExtent2D HelloTriangleApplication::chooseSwapExtent(const VkSurfaceCapabilitie
 }
 
 //creates a working swap chain with all prefered settings
-void HelloTriangleApplication::createSwapChain()
+void FlexEngine::createSwapChain()
 {
     SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
 
@@ -736,11 +758,37 @@ void HelloTriangleApplication::createSwapChain()
     swapChainExtent = extent;
 }
 
+void FlexEngine::recreateSwapChain()
+{
+    vkDeviceWaitIdle(device);
+
+    cleanupSwapChain();
+
+    createSwapChain();
+    createImageViews();
+    createFramebuffers();
+}
+
+void FlexEngine::cleanupSwapChain()
+{
+    for (size_t i = 0; i < swapChainFramebuffers.size(); i++)
+    {
+        vkDestroyFramebuffer(device, swapChainFramebuffers[i], nullptr);
+    }
+
+    for (size_t i = 0; i < swapChainImageViews.size(); i++)
+    {
+        vkDestroyImageView(device, swapChainImageViews[i], nullptr);
+    }
+
+    vkDestroySwapchainKHR(device, swapChain, nullptr);
+}
+
 /*---------------------------------*/
 /*----Graphics Pipeline Methods----*/
 /*---------------------------------*/
 
-void HelloTriangleApplication::createGraphicsPipeline()
+void FlexEngine::createGraphicsPipeline()
 {
     auto vertShaderCode = readFile("Code Files/Shader/vert.spv");
     auto fragShaderCode = readFile("Code Files/Shader/frag.spv");
@@ -872,7 +920,7 @@ void HelloTriangleApplication::createGraphicsPipeline()
     vkDestroyShaderModule(device, fragShaderModule, nullptr);
 }
 
-std::vector<char> HelloTriangleApplication::readFile(const std::string& fileName)
+std::vector<char> FlexEngine::readFile(const std::string& fileName)
 {
     std::ifstream file(fileName, std::ios::ate | std::ios::binary);
 
@@ -896,7 +944,7 @@ std::vector<char> HelloTriangleApplication::readFile(const std::string& fileName
     return buffer;
 }
 
-VkShaderModule HelloTriangleApplication::createShaderModule(const std::vector<char>& code)
+VkShaderModule FlexEngine::createShaderModule(const std::vector<char>& code)
 {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -917,7 +965,7 @@ VkShaderModule HelloTriangleApplication::createShaderModule(const std::vector<ch
 /*---------------------------------*/
 
 //gets the required extensions needed
-std::vector<const char*> HelloTriangleApplication::getRequiredExtensions()
+std::vector<const char*> FlexEngine::getRequiredExtensions()
 {
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions;
@@ -933,8 +981,7 @@ std::vector<const char*> HelloTriangleApplication::getRequiredExtensions()
     return extensions;
 }
 
-//checks for extensions supported and prints them out
-void HelloTriangleApplication::checkForExtensionsSupport()
+void FlexEngine::checkForExtensionsSupport()
 {
     uint32_t extensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
@@ -948,8 +995,9 @@ void HelloTriangleApplication::checkForExtensionsSupport()
     }
 }
 
+
 //Checks if the GPU supports Swap Chain to draw on the screen
-bool HelloTriangleApplication::checkDeviceExtensionSupport(VkPhysicalDevice device)
+bool FlexEngine::checkDeviceExtensionSupport(VkPhysicalDevice device)
 {
     uint32_t extensionCount = 0;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
@@ -970,7 +1018,7 @@ bool HelloTriangleApplication::checkDeviceExtensionSupport(VkPhysicalDevice devi
 /*----------Debug Methods----------*/
 /*---------------------------------*/
 
-VkBool32 HelloTriangleApplication::debugCallback
+VkBool32 FlexEngine::debugCallback
    (VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, 
     VkDebugUtilsMessageTypeFlagsEXT messageType, 
     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, 
@@ -981,7 +1029,7 @@ VkBool32 HelloTriangleApplication::debugCallback
     return VK_FALSE;
 }
 
-void HelloTriangleApplication::setupDebugMessenger()
+void FlexEngine::setupDebugMessenger()
 {
     if (!enableValidationLayers) return;
 
@@ -994,7 +1042,7 @@ void HelloTriangleApplication::setupDebugMessenger()
     }
 }
 
-void HelloTriangleApplication::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
+void FlexEngine::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
 {
     createInfo = {};
 
@@ -1008,7 +1056,7 @@ void HelloTriangleApplication::populateDebugMessengerCreateInfo(VkDebugUtilsMess
     createInfo.pfnUserCallback = debugCallback;
 }
 
-VkResult HelloTriangleApplication::CreateDebugUtilsMessengerEXT
+VkResult FlexEngine::CreateDebugUtilsMessengerEXT
 (VkInstance theInstance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
     const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
@@ -1021,7 +1069,7 @@ VkResult HelloTriangleApplication::CreateDebugUtilsMessengerEXT
     }
 }
 
-void HelloTriangleApplication::destroyDebugUtilsMessengerEXT
+void FlexEngine::destroyDebugUtilsMessengerEXT
 (VkInstance theInstance, VkDebugUtilsMessengerEXT theDebugMessenger,
     const VkAllocationCallbacks* pAllocator)
 {
