@@ -49,6 +49,8 @@ private:
     void drawFrame();
     void createSyncObjects();
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+    void createVertexBuffer();
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
     //Swap Chain Methods
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
@@ -103,7 +105,8 @@ private:
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
-    bool framebufferRezised = false;
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
 
     //Swap Chain Variables
     VkSwapchainKHR swapChain;
@@ -117,5 +120,6 @@ private:
     const uint32_t HEIGHT = 600;
     const int maxFramesInFlight = 2;
     uint32_t currentFrame = 0;
+    bool framebufferRezised = false;
 
 };
