@@ -9,13 +9,15 @@
 #include <vector>
 #include <string>
 
+#include "FXE_Window.h"
+
 struct QueueFamilyIndices;
 struct SwapChainSupportDetails;
 
 class FlexEngine {
 public:
     void run() {
-        initWindow();
+        //initWindow();
         initVulkan();
         mainLoop();
         cleanup();
@@ -122,4 +124,6 @@ private:
     uint32_t currentFrame = 0;
     bool framebufferRezised = false;
 
+
+    FXE_Window test{800, 600, "test", this, framebufferResizeCallback};
 };

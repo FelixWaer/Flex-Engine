@@ -20,10 +20,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Code Files\EngineApplication.cpp" />
+    <ClCompile Include="Code Files\FXE_Window.cpp" />
     <ClCompile Include="Code Files\main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Code Files\EngineApplication.h" />
+    <ClInclude Include="Code Files\FXE_Window.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Code Files\Shader\Vertex_Shader.frag" />

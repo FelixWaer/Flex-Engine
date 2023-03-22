@@ -127,7 +127,7 @@ void FlexEngine::initVulkan()
 void FlexEngine::mainLoop()
 {
 
-	while (!glfwWindowShouldClose(window))
+	while (!glfwWindowShouldClose(test.window))
 	{
 		glfwPollEvents();
         drawFrame();
@@ -163,7 +163,8 @@ void FlexEngine::cleanup()
     vkDestroySurfaceKHR(instance, surface, nullptr);
 	vkDestroyInstance(instance, nullptr);
 
-	glfwDestroyWindow(window);
+    test.destroyWindow();
+	//glfwDestroyWindow(window);
 	glfwTerminate();    
 }
 
@@ -356,7 +357,7 @@ void FlexEngine::createLogicalDevice()
 
 void FlexEngine::createSurface()
 {
-	if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS)
+	if (glfwCreateWindowSurface(instance, test.window, nullptr, &surface) != VK_SUCCESS)
 	{
         throw std::runtime_error("failed to create window surface!");
 	}
@@ -792,7 +793,7 @@ VkExtent2D FlexEngine::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabili
 	else
 	{
         int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
+        glfwGetFramebufferSize(test.window, &width, &height);
 
         VkExtent2D actualExtent = {
             static_cast<uint32_t>(width),
@@ -872,10 +873,10 @@ void FlexEngine::recreateSwapChain()
 {
     int width = 0;
     int height = 0;
-    glfwGetFramebufferSize(window, &width, &height);
+    glfwGetFramebufferSize(test.window, &width, &height);
     while (width == 0 || height == 0)
     {
-        glfwGetFramebufferSize(window, &width, &height);
+        glfwGetFramebufferSize(test.window, &width, &height);
         glfwWaitEvents();
     }
 
