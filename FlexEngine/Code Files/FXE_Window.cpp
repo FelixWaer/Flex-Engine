@@ -1,39 +1,53 @@
 #include "FXE_Window.h"
 
-FXE_Window::FXE_Window(int width, int height, const char* windowName, void* pointer, GLFWframebuffersizefun callback)
+#include <iostream>
+
+void FXEWindow::initWindow(int width, int height, const char* windowName, void* pointer, GLFWframebuffersizefun callback)
 {
+	Width = width;
+	Height = height;
+
 	glfwInit();
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-	window = glfwCreateWindow(width, height, windowName, nullptr, nullptr);
-	glfwSetWindowUserPointer(window, pointer);
-	glfwSetFramebufferSizeCallback(window, callback);
+	Window = glfwCreateWindow(width, height, windowName, nullptr, nullptr);
+	glfwSetWindowUserPointer(Window, pointer);
+	glfwSetFramebufferSizeCallback(Window, callback);
 }
 
-void FXE_Window::destroyWindow()
+
+void FXEWindow::cleanup()
 {
-	glfwDestroyWindow(window);
+	glfwDestroyWindow(Window);
+	glfwTerminate();
 }
 
-bool FXE_Window::windowClosing()
+bool FXEWindow::windowClosing()
 {
-	if (glfwWindowShouldClose(window))
+	if (glfwWindowShouldClose(Window))
 	{
 		return true;
 	}
 	return false;
 }
 
-void FXE_Window::windowMinimized()
+void FXEWindow::windowMinimized()
 {
-	int width = 0;
-	int height = 0;
-	glfwGetFramebufferSize(window, &width, &height);
-	while (width == 0 || height == 0)
+	glfwGetFramebufferSize(Window, &Width, &Height);
+	while (Width == 0 || Height == 0)
 	{
-		glfwGetFramebufferSize(window, &width, &height);
+		glfwGetFramebufferSize(Window, &Width, &Height);
 		glfwWaitEvents();
 	}
 }
+
+void FXEWindow::createSurface(VkInstance theInstance)
+{
+	if (glfwCreateWindowSurface(theInstance, Window, nullptr, &Surface) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create window surface!");
+	}
+}
+

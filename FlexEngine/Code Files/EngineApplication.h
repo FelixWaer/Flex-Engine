@@ -7,9 +7,9 @@
 #include <GLFW/glfw3native.h>
 
 #include <vector>
-#include <string>
 
 #include "FXE_Window.h"
+#include "FXE_GraphicPipeline.h"
 
 struct QueueFamilyIndices;
 struct SwapChainSupportDetails;
@@ -17,6 +17,7 @@ struct SwapChainSupportDetails;
 class FlexEngine {
 public:
     void run() {
+        Window.initWindow(WIDTH, HEIGHT, "FlexEngine", this, framebufferResizeCallback);
         initVulkan();
         mainLoop();
         cleanup();
@@ -38,7 +39,6 @@ private:
     static bool checkValidationLayerSupport();
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     void createLogicalDevice();
-    void createSurface();
     void createImageViews();
     void createRenderPass();
     void createFramebuffers();
@@ -60,11 +60,6 @@ private:
     void recreateSwapChain();
     void cleanupSwapChain();
 
-    //Graphic Pipeline Methods
-    void createGraphicsPipeline();
-    static std::vector<char> readFile(const std::string& fileName);
-    VkShaderModule createShaderModule(const std::vector<char>& code);
-
     //Extension Support Methods
     static std::vector<const char*> getRequiredExtensions();
     static void checkForExtensionsSupport();
@@ -78,25 +73,24 @@ private:
         void* pUserData);
     void setupDebugMessenger();
     static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-    VkResult CreateDebugUtilsMessengerEXT(
+		VkResult CreateDebugUtilsMessengerEXT(
         VkInstance theInstance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
         const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
     void destroyDebugUtilsMessengerEXT
-    (VkInstance theInstance, VkDebugUtilsMessengerEXT theDebugMessenger,
+		(VkInstance theInstance, VkDebugUtilsMessengerEXT theDebugMessenger,
         const VkAllocationCallbacks* pAllocator);
 
 
     //Variables
+    FXEWindow Window;
+    FXEGraphicPipeline TheGraphicPipeline;
+
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkDevice device;
     VkQueue graphicsQueue;
     VkQueue presentQueue;
-    VkSurfaceKHR surface;
-    VkRenderPass renderPass;
-    VkPipelineLayout pipelineLayout;
-    VkPipeline graphicsPipeline;
     std::vector<VkFramebuffer> swapChainFramebuffers;
     VkCommandPool commandPool;
     std::vector<VkCommandBuffer> commandBuffers;
@@ -119,7 +113,4 @@ private:
     const int maxFramesInFlight = 2;
     uint32_t currentFrame = 0;
     bool framebufferRezised = false;
-
-
-    FXE_Window window{800, 600, "test", this, framebufferResizeCallback};
 };

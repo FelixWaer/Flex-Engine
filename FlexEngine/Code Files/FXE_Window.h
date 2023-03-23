@@ -2,17 +2,22 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-class FXE_Window
+class FXEWindow
 {
 public:
-	FXE_Window(int width, int height, const char* windowName, void* pointer, GLFWframebuffersizefun callback);
+	FXEWindow(){}
 
-	void destroyWindow();
+	void initWindow(int width, int height, const char* windowName, void* pointer, GLFWframebuffersizefun callback);
+	void cleanup();
 	bool windowClosing();
 	void windowMinimized();
 
-	GLFWwindow* window;
-private:
+	void createSurface(VkInstance theInstance);
 
+	GLFWwindow* Window;
+	VkSurfaceKHR Surface;
+private:
+	int Width;
+	int Height;
 };
 

@@ -27,12 +27,18 @@
     <ClCompile Include="Code Files\FXE_Window.cpp">
       <Filter>Resource Files</Filter>
     </ClCompile>
+    <ClCompile Include="Code Files\FXE_GraphicPipeline.cpp">
+      <Filter>Resource Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Code Files\EngineApplication.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Code Files\FXE_Window.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Code Files\FXE_GraphicPipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
