@@ -9,6 +9,7 @@ public:
 
 	void destroyWindow();
 	bool windowClosing();
+	void windowMinimized();
 
 	GLFWwindow* window;
 private:

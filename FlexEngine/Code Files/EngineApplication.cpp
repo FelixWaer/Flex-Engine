@@ -92,18 +92,6 @@ const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_N
 /*----------Main Methods-----------*/
 /*---------------------------------*/
 
-void FlexEngine::initWindow()
-{
-	glfwInit();
-
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-
-	window = glfwCreateWindow(WIDTH, HEIGHT, "FlexEngine", nullptr, nullptr);
-    glfwSetWindowUserPointer(window, this);
-    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-}
-
 void FlexEngine::initVulkan()
 {
     createInstance();
@@ -127,7 +115,7 @@ void FlexEngine::initVulkan()
 void FlexEngine::mainLoop()
 {
 
-	while (!glfwWindowShouldClose(test.window))
+	while (!window.windowClosing())
 	{
 		glfwPollEvents();
         drawFrame();
@@ -163,7 +151,7 @@ void FlexEngine::cleanup()
     vkDestroySurfaceKHR(instance, surface, nullptr);
 	vkDestroyInstance(instance, nullptr);
 
-    test.destroyWindow();
+    window.destroyWindow();
 	//glfwDestroyWindow(window);
 	glfwTerminate();    
 }
@@ -357,7 +345,7 @@ void FlexEngine::createLogicalDevice()
 
 void FlexEngine::createSurface()
 {
-	if (glfwCreateWindowSurface(instance, test.window, nullptr, &surface) != VK_SUCCESS)
+	if (glfwCreateWindowSurface(instance, window.window, nullptr, &surface) != VK_SUCCESS)
 	{
         throw std::runtime_error("failed to create window surface!");
 	}
@@ -793,7 +781,7 @@ VkExtent2D FlexEngine::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabili
 	else
 	{
         int width, height;
-        glfwGetFramebufferSize(test.window, &width, &height);
+        glfwGetFramebufferSize(window.window, &width, &height);
 
         VkExtent2D actualExtent = {
             static_cast<uint32_t>(width),
@@ -871,14 +859,7 @@ void FlexEngine::createSwapChain()
 
 void FlexEngine::recreateSwapChain()
 {
-    int width = 0;
-    int height = 0;
-    glfwGetFramebufferSize(test.window, &width, &height);
-    while (width == 0 || height == 0)
-    {
-        glfwGetFramebufferSize(test.window, &width, &height);
-        glfwWaitEvents();
-    }
+    window.windowMinimized();
 
     vkDeviceWaitIdle(device);
 

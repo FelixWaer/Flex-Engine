@@ -25,3 +25,15 @@ bool FXE_Window::windowClosing()
 	}
 	return false;
 }
+
+void FXE_Window::windowMinimized()
+{
+	int width = 0;
+	int height = 0;
+	glfwGetFramebufferSize(window, &width, &height);
+	while (width == 0 || height == 0)
+	{
+		glfwGetFramebufferSize(window, &width, &height);
+		glfwWaitEvents();
+	}
+}

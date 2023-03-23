@@ -17,7 +17,6 @@ struct SwapChainSupportDetails;
 class FlexEngine {
 public:
     void run() {
-        //initWindow();
         initVulkan();
         mainLoop();
         cleanup();
@@ -26,9 +25,7 @@ public:
 private:
 
     //Main Methods
-    void initWindow();
-
-    void initVulkan();
+	void initVulkan();
 
     void mainLoop();
 
@@ -90,7 +87,6 @@ private:
 
 
     //Variables
-    GLFWwindow* window;
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -125,5 +121,5 @@ private:
     bool framebufferRezised = false;
 
 
-    FXE_Window test{800, 600, "test", this, framebufferResizeCallback};
+    FXE_Window window{800, 600, "test", this, framebufferResizeCallback};
 };
