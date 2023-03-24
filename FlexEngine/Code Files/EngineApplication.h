@@ -10,6 +10,7 @@
 
 #include "FXE_Window.h"
 #include "FXE_GraphicPipeline.h"
+#include "FXE_DebugMessenger.h"
 
 struct QueueFamilyIndices;
 struct SwapChainSupportDetails;
@@ -17,7 +18,7 @@ struct SwapChainSupportDetails;
 class FlexEngine {
 public:
     void run() {
-        Window.initWindow(WIDTH, HEIGHT, "FlexEngine", this, framebufferResizeCallback);
+        Window.initWindow(static_cast<int>(WIDTH), static_cast<int>(HEIGHT), "FlexEngine", this, framebufferResizeCallback);
         initVulkan();
         mainLoop();
         cleanup();
@@ -65,28 +66,13 @@ private:
     static void checkForExtensionsSupport();
     static bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 
-    //Debug Methods
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-        void* pUserData);
-    void setupDebugMessenger();
-    static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-		VkResult CreateDebugUtilsMessengerEXT(
-        VkInstance theInstance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-        const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
-    void destroyDebugUtilsMessengerEXT
-		(VkInstance theInstance, VkDebugUtilsMessengerEXT theDebugMessenger,
-        const VkAllocationCallbacks* pAllocator);
-
 
     //Variables
     FXEWindow Window;
     FXEGraphicPipeline TheGraphicPipeline;
+    FXEDebugMessenger TheDebugMessenger;
 
     VkInstance instance;
-    VkDebugUtilsMessengerEXT debugMessenger;
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkDevice device;
     VkQueue graphicsQueue;
