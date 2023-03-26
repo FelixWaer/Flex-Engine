@@ -34,7 +34,7 @@
       <Filter>Resource Files</Filter>
     </ClCompile>
     <ClCompile Include="Code Files\FXE_FrameCreation.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Resource Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

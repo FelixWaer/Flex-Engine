@@ -11,6 +11,7 @@
 #include "FXE_Window.h"
 #include "FXE_GraphicPipeline.h"
 #include "FXE_DebugMessenger.h"
+#include "FXE_FrameCreation.h"
 
 struct QueueFamilyIndices;
 struct SwapChainSupportDetails;
@@ -36,13 +37,10 @@ private:
     //Method
     void createInstance();
     void pickPhysicalDevice();
-    bool isDeviceSuitable(VkPhysicalDevice device);
+    bool isDeviceSuitable(VkPhysicalDevice physicalDevice);
     static bool checkValidationLayerSupport();
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     void createLogicalDevice();
-    void createImageViews();
-    void createRenderPass();
-    void createFramebuffers();
     void createCommandPool();
     void createCommandBuffers();
     void recordCommandBuffer(VkCommandBuffer theCommandBuffer, uint32_t imageIndex);
@@ -53,13 +51,7 @@ private:
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
     //Swap Chain Methods
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
-    static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-    static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-    void createSwapChain();
     void recreateSwapChain();
-    void cleanupSwapChain();
 
     //Extension Support Methods
     static std::vector<const char*> getRequiredExtensions();
@@ -71,13 +63,13 @@ private:
     FXEWindow Window;
     FXEGraphicPipeline TheGraphicPipeline;
     FXEDebugMessenger TheDebugMessenger;
+    FXEFrameCreation TheFrameCreation;
 
     VkInstance instance;
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkDevice device;
     VkQueue graphicsQueue;
     VkQueue presentQueue;
-    std::vector<VkFramebuffer> swapChainFramebuffers;
     VkCommandPool commandPool;
     std::vector<VkCommandBuffer> commandBuffers;
     std::vector<VkSemaphore> imageAvailableSemaphores;
@@ -85,14 +77,6 @@ private:
     std::vector<VkFence> inFlightFences;
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
-
-    //Swap Chain Variables
-    VkSwapchainKHR swapChain;
-    std::vector<VkImage> swapChainImages;
-    VkFormat swapChainImageFormat;
-    VkExtent2D swapChainExtent;
-    std::vector<VkImageView> swapChainImageViews;
-
 
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
