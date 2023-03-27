@@ -4,6 +4,8 @@
 #include <iostream>
 #include <optional>
 
+#include "FXE_Window.h"
+
 /*---------------------------------*/
 /*-------------Structs-------------*/
 /*---------------------------------*/
@@ -153,6 +155,19 @@ void FXEFrameCreation::create_FrameBuffer(VkDevice device, VkRenderPass renderPa
             throw std::runtime_error("failed to create framebuffer!");
         }
     }
+}
+
+//recreating the swap chain
+void FXEFrameCreation::recreate_SwapChain(VkDevice device, VkPhysicalDevice physicalDevice, VkRenderPass renderPass, FXEWindow* window)
+{
+    window->windowMinimized();
+
+    vkDeviceWaitIdle(device);
+
+    cleanup(device);
+    create_SwapChain(physicalDevice, device, window->Surface, window->Window);
+    create_ImageViews(device);
+    create_FrameBuffer(device, renderPass);
 }
 
 //Checks if swap chain is compatible with our window surface

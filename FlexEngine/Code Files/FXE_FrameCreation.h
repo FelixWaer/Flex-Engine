@@ -11,6 +11,8 @@
 struct SwapChainSupportDetails;
 struct QueueFamilyIndices;
 
+class FXEWindow;
+
 class FXEFrameCreation
 {
 public:
@@ -18,6 +20,8 @@ public:
 	void create_SwapChain(VkPhysicalDevice physicalDevice, VkDevice device, VkSurfaceKHR surface, GLFWwindow* window);
 	void create_ImageViews(VkDevice device);
 	void create_FrameBuffer(VkDevice device, VkRenderPass renderPass);
+	void recreate_SwapChain(VkDevice device, VkPhysicalDevice physicalDevice, VkRenderPass renderPass, FXEWindow* window);
+
 	static SwapChainSupportDetails query_SwapChainSupport(const VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface);
 
 	VkSwapchainKHR SwapChain;

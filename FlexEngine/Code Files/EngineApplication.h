@@ -19,7 +19,7 @@ struct SwapChainSupportDetails;
 class FlexEngine {
 public:
     void run() {
-        Window.initWindow(static_cast<int>(WIDTH), static_cast<int>(HEIGHT), "FlexEngine", this, framebufferResizeCallback);
+        TheWindow.initWindow(static_cast<int>(WIDTH), static_cast<int>(HEIGHT), "FlexEngine", this, framebufferResizeCallback);
         initVulkan();
         mainLoop();
         cleanup();
@@ -50,9 +50,6 @@ private:
     void createVertexBuffer();
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
-    //Swap Chain Methods
-    void recreateSwapChain();
-
     //Extension Support Methods
     static std::vector<const char*> getRequiredExtensions();
     static void checkForExtensionsSupport();
@@ -60,23 +57,23 @@ private:
 
 
     //Variables
-    FXEWindow Window;
+    FXEWindow TheWindow;
     FXEGraphicPipeline TheGraphicPipeline;
     FXEDebugMessenger TheDebugMessenger;
     FXEFrameCreation TheFrameCreation;
 
-    VkInstance instance;
-    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    VkDevice device;
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
-    VkCommandPool commandPool;
-    std::vector<VkCommandBuffer> commandBuffers;
-    std::vector<VkSemaphore> imageAvailableSemaphores;
-    std::vector<VkSemaphore> renderFinishedSemaphores;
-    std::vector<VkFence> inFlightFences;
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
+    VkInstance Instance;
+    VkPhysicalDevice PhysicalDevice = VK_NULL_HANDLE;
+    VkDevice Device;
+    VkQueue GraphicsQueue;
+    VkQueue PresentQueue;
+    VkCommandPool CommandPool;
+    std::vector<VkCommandBuffer> CommandBuffers;
+    std::vector<VkSemaphore> ImageAvailableSemaphores;
+    std::vector<VkSemaphore> RenderFinishedSemaphores;
+    std::vector<VkFence> InFlightFences;
+    VkBuffer VertexBuffer;
+    VkDeviceMemory VertexBufferMemory;
 
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
