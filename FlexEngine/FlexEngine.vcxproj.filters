@@ -53,6 +53,9 @@
     <ClInclude Include="Code Files\FXE_FrameCreation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Code Files\Debug_Macros.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Code Files\Shader\Vertex_Shader.frag">

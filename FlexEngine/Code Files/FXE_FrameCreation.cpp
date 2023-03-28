@@ -3,8 +3,14 @@
 #include <algorithm>
 #include <iostream>
 #include <optional>
+#include <chrono>
 
 #include "FXE_Window.h"
+#include "FXE_GraphicPipeline.h"
+
+#define TIME(x) x = std::chrono::high_resolution_clock::now();
+#define PRINT_TIME_NS(text, start, end) std::cout << text << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+#define PRINT_TIME_MS(text, start, end) std::cout << text << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
 
 /*---------------------------------*/
 /*-------------Structs-------------*/
@@ -28,7 +34,13 @@ struct QueueFamilyIndices
     }
 };
 
-void FXEFrameCreation::cleanup(VkDevice device)
+void FXEFrameCreation::init_FrameCreation(FXEWindow* theWindow, FXEGraphicPipeline* theGraphicPipeline)
+{
+    TheWindowPtr = theWindow;
+    TheGraphicPipelinePtr = theGraphicPipeline;
+}
+
+void FXEFrameCreation::cleanup_SwapChain(VkDevice device)
 {
     for (size_t i = 0; i < SwapChainFramebuffers.size(); i++)
     {
@@ -43,14 +55,98 @@ void FXEFrameCreation::cleanup(VkDevice device)
     vkDestroySwapchainKHR(device, SwapChain, nullptr);
 }
 
-//creates a working swap chain with all preferred settings
-void FXEFrameCreation::create_SwapChain(VkPhysicalDevice physicalDevice, VkDevice device, VkSurfaceKHR surface, GLFWwindow* window)
+void FXEFrameCreation::cleanup_Semaphores(VkDevice device)
 {
-    SwapChainSupportDetails swapChainSupport = query_SwapChainSupport(physicalDevice, surface);
+    for (size_t i = 0; i < MaxFramesInFlight; i++)
+    {
+        vkDestroySemaphore(device, ImageAvailableSemaphores[i], nullptr);
+        vkDestroySemaphore(device, RenderFinishedSemaphores[i], nullptr);
+        vkDestroyFence(device, InFlightFences[i], nullptr);
+    }
+
+    vkDestroyCommandPool(device, CommandPool, nullptr);
+}
+
+void FXEFrameCreation::draw_Frame(VkDevice device, VkPhysicalDevice physcialDevice, VkQueue presentQueue, VkQueue graphicsQueue, VkBuffer vertexBuffer, uint32_t vertexCount)
+{
+    vkWaitForFences(device, 1, &InFlightFences[CurrentFrame], VK_TRUE, UINT64_MAX);
+
+    uint32_t imageIndex;
+    VkResult result = vkAcquireNextImageKHR(device, SwapChain, UINT64_MAX, ImageAvailableSemaphores[CurrentFrame], VK_NULL_HANDLE, &imageIndex);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        TIME(auto start)
+            recreate_SwapChain(device, physcialDevice);
+        TIME(auto end)
+            PRINT_TIME_MS("time to recreate: ", start, end)
+            return;
+    }
+    else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+    {
+        throw std::runtime_error("failed to acquire swap chain image!");
+    }
+
+    vkResetFences(device, 1, &InFlightFences[CurrentFrame]);
+
+    vkResetCommandBuffer(CommandBuffers[CurrentFrame], 0);
+    record_CommandBuffer(CommandBuffers[CurrentFrame], vertexCount, imageIndex, vertexBuffer);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    VkSemaphore waitSemaphore[] = { ImageAvailableSemaphores[CurrentFrame] };
+    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemaphore;
+    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &CommandBuffers[CurrentFrame];
+
+    VkSemaphore signalSemaphores[] = { RenderFinishedSemaphores[CurrentFrame] };
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+
+    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, InFlightFences[CurrentFrame]) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to submit draw command buffer!");
+    }
+
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemaphores;
+    VkSwapchainKHR swapChains[] = { SwapChain };
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapChains;
+    presentInfo.pImageIndices = &imageIndex;
+    presentInfo.pResults = nullptr;
+
+    result = vkQueuePresentKHR(presentQueue, &presentInfo);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || FramebufferRezised)
+    {
+        FramebufferRezised = false;
+
+        TIME(auto start);
+        recreate_SwapChain(device, physcialDevice);
+        TIME(auto end);
+        PRINT_TIME_MS("time to recreate: ", start, end)
+    }
+    else if (result != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to present swap chain image");
+    }
+
+    CurrentFrame = (CurrentFrame + 1) % MaxFramesInFlight;
+}
+
+//creates a working swap chain with all preferred settings
+void FXEFrameCreation::create_SwapChain(VkPhysicalDevice physicalDevice, VkDevice device)
+{
+    SwapChainSupportDetails swapChainSupport = query_SwapChainSupport(physicalDevice, TheWindowPtr->Surface);
 
     VkSurfaceFormatKHR surfaceFormat = choose_SwapSurfaceFormat(swapChainSupport.formats);
     VkPresentModeKHR presentMode = choose_SwapPresentMode(swapChainSupport.presentModes);
-    VkExtent2D extent = choose_SwapExtent(swapChainSupport.capabilities, window);
+    VkExtent2D extent = choose_SwapExtent(swapChainSupport.capabilities, TheWindowPtr->Window);
 
     uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
 
@@ -61,7 +157,7 @@ void FXEFrameCreation::create_SwapChain(VkPhysicalDevice physicalDevice, VkDevic
 
     VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = surface;
+    createInfo.surface = TheWindowPtr->Surface;
     createInfo.minImageCount = imageCount;
     createInfo.imageFormat = surfaceFormat.format;
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -69,7 +165,7 @@ void FXEFrameCreation::create_SwapChain(VkPhysicalDevice physicalDevice, VkDevic
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    QueueFamilyIndices indices = find_QueueFamilies(physicalDevice, surface);
+    QueueFamilyIndices indices = find_QueueFamilies(physicalDevice, TheWindowPtr->Surface);
     uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
     if (indices.graphicsFamily != indices.presentFamily)
@@ -132,7 +228,7 @@ void FXEFrameCreation::create_ImageViews(VkDevice device)
     }
 }
 
-void FXEFrameCreation::create_FrameBuffer(VkDevice device, VkRenderPass renderPass)
+void FXEFrameCreation::create_FrameBuffer(VkDevice device)
 {
     SwapChainFramebuffers.resize(SwapChainImageViews.size());
 
@@ -143,7 +239,7 @@ void FXEFrameCreation::create_FrameBuffer(VkDevice device, VkRenderPass renderPa
 
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = renderPass;
+        framebufferInfo.renderPass = TheGraphicPipelinePtr->RenderPass;
         framebufferInfo.attachmentCount = 1;
         framebufferInfo.pAttachments = attachments;
         framebufferInfo.width = SwapChainExtent.width;
@@ -158,16 +254,126 @@ void FXEFrameCreation::create_FrameBuffer(VkDevice device, VkRenderPass renderPa
 }
 
 //recreating the swap chain
-void FXEFrameCreation::recreate_SwapChain(VkDevice device, VkPhysicalDevice physicalDevice, VkRenderPass renderPass, FXEWindow* window)
+void FXEFrameCreation::recreate_SwapChain(VkDevice device, VkPhysicalDevice physicalDevice)
 {
-    window->windowMinimized();
+    TheWindowPtr->windowMinimized();
 
     vkDeviceWaitIdle(device);
 
-    cleanup(device);
-    create_SwapChain(physicalDevice, device, window->Surface, window->Window);
+    cleanup_SwapChain(device);
+    create_SwapChain(physicalDevice, device);
     create_ImageViews(device);
-    create_FrameBuffer(device, renderPass);
+    create_FrameBuffer(device);
+}
+
+void FXEFrameCreation::create_CommandPool(VkDevice device, QueueFamilyIndices indices)
+{
+    QueueFamilyIndices queueFamilyIndices = indices;
+
+    VkCommandPoolCreateInfo commandPoolInfo{};
+    commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    commandPoolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+
+    if (vkCreateCommandPool(device, &commandPoolInfo, nullptr, &CommandPool) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create command pools!");
+    }
+}
+
+void FXEFrameCreation::create_CommandBuffer(VkDevice device)
+{
+    CommandBuffers.resize(MaxFramesInFlight);
+
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = CommandPool;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = (uint32_t)CommandBuffers.size();
+
+    if (vkAllocateCommandBuffers(device, &allocInfo, CommandBuffers.data()) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to allocate command buffer!");
+    }
+}
+
+void FXEFrameCreation::record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t imageIndex, VkBuffer vertexBuffer)
+{
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = 0;
+    beginInfo.pInheritanceInfo = nullptr;
+
+    if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to begin recording command buffer!");
+    }
+
+    VkRenderPassBeginInfo renderPassBeginInfo{};
+    renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassBeginInfo.renderPass = TheGraphicPipelinePtr->RenderPass;
+    renderPassBeginInfo.framebuffer = SwapChainFramebuffers[imageIndex];
+    renderPassBeginInfo.renderArea.offset = { 0, 0 };
+    renderPassBeginInfo.renderArea.extent = { SwapChainExtent };
+
+    VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+    renderPassBeginInfo.clearValueCount = 1;
+    renderPassBeginInfo.pClearValues = &clearColor;
+
+    vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, TheGraphicPipelinePtr->GraphicsPipeline);
+
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = static_cast<float>(SwapChainExtent.width);
+    viewport.height = static_cast<float>(SwapChainExtent.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+    VkRect2D scissor{};
+    scissor.offset = { 0, 0 };
+    scissor.extent = SwapChainExtent;
+    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+    VkBuffer vertexBuffers[] = { vertexBuffer };
+    VkDeviceSize offsets[] = { 0 };
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+    vkCmdDraw(commandBuffer, vertexCount, 1, 0, 0);
+
+    vkCmdEndRenderPass(commandBuffer);
+
+    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to record command buffer!");
+    }
+
+
+}
+
+void FXEFrameCreation::create_SyncObjects(VkDevice device)
+{
+    ImageAvailableSemaphores.resize(MaxFramesInFlight);
+    RenderFinishedSemaphores.resize(MaxFramesInFlight);
+    InFlightFences.resize(MaxFramesInFlight);
+
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    for (size_t i = 0; i < MaxFramesInFlight; i++)
+    {
+        if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &ImageAvailableSemaphores[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(device, &semaphoreInfo, nullptr, &RenderFinishedSemaphores[i]) != VK_SUCCESS ||
+            vkCreateFence(device, &fenceInfo, nullptr, &InFlightFences[i]) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create semaphores!");
+        }
+    }
 }
 
 //Checks if swap chain is compatible with our window surface

@@ -26,7 +26,6 @@ public:
     }
 
 private:
-
     //Main Methods
 	void initVulkan();
 
@@ -41,12 +40,9 @@ private:
     static bool checkValidationLayerSupport();
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     void createLogicalDevice();
-    void createCommandPool();
-    void createCommandBuffers();
-    void recordCommandBuffer(VkCommandBuffer theCommandBuffer, uint32_t imageIndex);
-    void drawFrame();
-    void createSyncObjects();
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+
+
     void createVertexBuffer();
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
@@ -67,17 +63,10 @@ private:
     VkDevice Device;
     VkQueue GraphicsQueue;
     VkQueue PresentQueue;
-    VkCommandPool CommandPool;
-    std::vector<VkCommandBuffer> CommandBuffers;
-    std::vector<VkSemaphore> ImageAvailableSemaphores;
-    std::vector<VkSemaphore> RenderFinishedSemaphores;
-    std::vector<VkFence> InFlightFences;
+
     VkBuffer VertexBuffer;
     VkDeviceMemory VertexBufferMemory;
 
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
-    const int maxFramesInFlight = 2;
-    uint32_t currentFrame = 0;
-    bool framebufferRezised = false;
 };

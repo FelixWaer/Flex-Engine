@@ -1,6 +1,6 @@
 #include "EngineApplication.h"
-#include <iostream>
 
+#include <iostream>
 #include <cstring>
 #include <vector>
 #include <optional>
@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <fstream>
 #include <array>
+#include <chrono>
 
 #include <glm/glm.hpp>
 
@@ -20,6 +21,10 @@ const bool debugMode = false;
 const bool enableValidationLayers = true;
 const bool debugMode = true;
 #endif
+
+#define TIME(x) x = std::chrono::high_resolution_clock::now();
+#define PRINT_TIME_NS(text, start, end) std::cout << text << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+#define PRINT_TIME_MS(text, start, end) std::cout << text << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
 
 
 /*---------------------------------*/
@@ -94,20 +99,23 @@ const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_N
 
 void FlexEngine::initVulkan()
 {
+    TIME(auto start)
+	TheFrameCreation.init_FrameCreation(&TheWindow, &TheGraphicPipeline);
     createInstance();
     TheDebugMessenger.setup_DebugMessenger(Instance);
     TheWindow.createSurface(Instance);
     pickPhysicalDevice();
     createLogicalDevice();
-    TheFrameCreation.create_SwapChain(PhysicalDevice, Device, TheWindow.Surface, TheWindow.Window);
+    TheFrameCreation.create_SwapChain(PhysicalDevice, Device);
     TheFrameCreation.create_ImageViews(Device);
     TheGraphicPipeline.init_GraphicsPipeline(Device, TheFrameCreation.SwapChainImageFormat);
-    TheFrameCreation.create_FrameBuffer(Device, TheGraphicPipeline.RenderPass);
-    createCommandPool();
+    TheFrameCreation.create_FrameBuffer(Device);
+    TheFrameCreation.create_CommandPool(Device, findQueueFamilies(PhysicalDevice));
     createVertexBuffer();
-    createCommandBuffers();
-    createSyncObjects();    
-
+    TheFrameCreation.create_CommandBuffer(Device);
+    TheFrameCreation.create_SyncObjects(Device);
+    TIME(auto end)
+	PRINT_TIME_MS("time to initialize Vulkan: ", start, end)
 }
 
 
@@ -116,28 +124,23 @@ void FlexEngine::mainLoop()
 
 	while (!TheWindow.windowClosing())
 	{
+        TIME(auto start)
 		glfwPollEvents();
-        drawFrame();
+        TheFrameCreation.draw_Frame(Device, PhysicalDevice, PresentQueue, GraphicsQueue, VertexBuffer, static_cast<uint32_t>(vertices.size()));
+        TIME(auto end)
+		PRINT_TIME_NS("ms per frame ", start, end)
 	}
     vkDeviceWaitIdle(Device);
 }
 
 void FlexEngine::cleanup()
 {
-    TheFrameCreation.cleanup(Device);
+    TheFrameCreation.cleanup_SwapChain(Device);
 
     vkDestroyBuffer(Device, VertexBuffer, nullptr);
     vkFreeMemory(Device, VertexBufferMemory, nullptr);
     TheGraphicPipeline.cleanup(Device);
-
-    for (size_t i = 0; i < maxFramesInFlight; i++)
-    {
-        vkDestroySemaphore(Device, ImageAvailableSemaphores[i], nullptr);
-        vkDestroySemaphore(Device, RenderFinishedSemaphores[i], nullptr);
-        vkDestroyFence(Device, InFlightFences[i], nullptr);
-    }
-
-    vkDestroyCommandPool(Device, CommandPool, nullptr);
+    TheFrameCreation.cleanup_Semaphores(Device);
     vkDestroyDevice(Device, nullptr);
 
 	if (enableValidationLayers)
@@ -368,185 +371,10 @@ bool FlexEngine::checkValidationLayerSupport()
     return true;
 }
 
-void FlexEngine::createCommandPool()
-{
-    QueueFamilyIndices queueFamilyIndices = findQueueFamilies(PhysicalDevice);
-
-    VkCommandPoolCreateInfo commandPoolInfo{};
-    commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    commandPoolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-
-    if (vkCreateCommandPool(Device, &commandPoolInfo, nullptr, &CommandPool) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create command pools!");
-    }
-}
-
-void FlexEngine::createCommandBuffers()
-{
-    CommandBuffers.resize(maxFramesInFlight);
-
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = CommandPool;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = (uint32_t) CommandBuffers.size();
-
-    if (vkAllocateCommandBuffers(Device, &allocInfo, CommandBuffers.data()) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to allocate command buffer!");
-    }
-}
-
-void FlexEngine::recordCommandBuffer(VkCommandBuffer theCommandBuffer, uint32_t imageIndex)
-{
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = 0;
-    beginInfo.pInheritanceInfo = nullptr;
-
-    if (vkBeginCommandBuffer(theCommandBuffer, &beginInfo) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to begin recording command buffer!");
-    }
-
-    VkRenderPassBeginInfo renderPassBeginInfo{};
-    renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassBeginInfo.renderPass = TheGraphicPipeline.RenderPass;
-    renderPassBeginInfo.framebuffer = TheFrameCreation.SwapChainFramebuffers[imageIndex];
-    renderPassBeginInfo.renderArea.offset = { 0, 0 };
-    renderPassBeginInfo.renderArea.extent = { TheFrameCreation.SwapChainExtent };
-
-    VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-    renderPassBeginInfo.clearValueCount = 1;
-    renderPassBeginInfo.pClearValues = &clearColor;
-
-    vkCmdBeginRenderPass(theCommandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(theCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, TheGraphicPipeline.GraphicsPipeline);
-
-    VkViewport viewport{};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = static_cast<float>(TheFrameCreation.SwapChainExtent.width);
-    viewport.height = static_cast<float>(TheFrameCreation.SwapChainExtent.height);
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-    vkCmdSetViewport(theCommandBuffer, 0, 1, &viewport);
-
-    VkRect2D scissor{};
-    scissor.offset = { 0, 0 };
-    scissor.extent = TheFrameCreation.SwapChainExtent;
-    vkCmdSetScissor(theCommandBuffer, 0, 1, &scissor);
-
-    VkBuffer vertexBuffers[] = { VertexBuffer };
-    VkDeviceSize offsets[] = { 0 };
-    vkCmdBindVertexBuffers(theCommandBuffer, 0, 1, vertexBuffers, offsets);
-    vkCmdDraw(theCommandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
-
-    vkCmdEndRenderPass(theCommandBuffer);
-
-    if (vkEndCommandBuffer(theCommandBuffer) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to record command buffer!");
-    }
-
-
-}
-
-void FlexEngine::drawFrame()
-{
-    vkWaitForFences(Device, 1, &InFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-
-    uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(Device, TheFrameCreation.SwapChain, UINT64_MAX, ImageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
-    if (result == VK_ERROR_OUT_OF_DATE_KHR)
-    {
-        TheFrameCreation.recreate_SwapChain(Device, PhysicalDevice, TheGraphicPipeline.RenderPass, &TheWindow);
-        return;
-    }
-    else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
-    {
-        throw std::runtime_error("failed to acquire swap chain image!");
-    }
-
-    vkResetFences(Device, 1, &InFlightFences[currentFrame]);
-
-    vkResetCommandBuffer(CommandBuffers[currentFrame], 0);
-    recordCommandBuffer(CommandBuffers[currentFrame], imageIndex);
-
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-    VkSemaphore waitSemaphore[] = { ImageAvailableSemaphores[currentFrame]};
-    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = waitSemaphore;
-    submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &CommandBuffers[currentFrame];
-
-    VkSemaphore signalSemaphores[] = { RenderFinishedSemaphores[currentFrame]};
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = signalSemaphores;
-
-    if (vkQueueSubmit(GraphicsQueue, 1, &submitInfo, InFlightFences[currentFrame]) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to submit draw command buffer!");
-    }
-
-    VkPresentInfoKHR presentInfo{};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = signalSemaphores;
-    VkSwapchainKHR swapChains[] = { TheFrameCreation.SwapChain };
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapChains;
-    presentInfo.pImageIndices = &imageIndex;
-    presentInfo.pResults = nullptr;
-
-    result = vkQueuePresentKHR(PresentQueue, &presentInfo);
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferRezised)
-    {
-        framebufferRezised = false;
-    	TheFrameCreation.recreate_SwapChain(Device, PhysicalDevice, TheGraphicPipeline.RenderPass, &TheWindow);
-    }
-    else if (result != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to present swap chain image");
-    }
-
-    currentFrame = (currentFrame + 1) % maxFramesInFlight;
-}
-
-void FlexEngine::createSyncObjects()
-{
-    ImageAvailableSemaphores.resize(maxFramesInFlight);
-    RenderFinishedSemaphores.resize(maxFramesInFlight);
-    InFlightFences.resize(maxFramesInFlight);
-
-    VkSemaphoreCreateInfo semaphoreInfo{};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-    VkFenceCreateInfo fenceInfo{};
-    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-    for (size_t i = 0; i < maxFramesInFlight; i++)
-    {
-        if (vkCreateSemaphore(Device, &semaphoreInfo, nullptr, &ImageAvailableSemaphores[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(Device, &semaphoreInfo, nullptr, &RenderFinishedSemaphores[i]) != VK_SUCCESS ||
-            vkCreateFence(Device, &fenceInfo, nullptr, &InFlightFences[i]) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create semaphores!");
-        }
-    }
-}
-
 void FlexEngine::framebufferResizeCallback(GLFWwindow* window, int width, int height)
 {
     auto app = reinterpret_cast<FlexEngine*>(glfwGetWindowUserPointer(window));
-    app->framebufferRezised = true;
+    app->TheFrameCreation.FramebufferRezised = true;
 }
 
 void FlexEngine::createVertexBuffer()
