@@ -17,24 +17,29 @@ class FXEGraphicPipeline;
 class FXEFrameCreation
 {
 public:
+	/*Main Methods*/
+	//methods for initalizing frame creation, cleaning up frame creation and for drawing the frame
 	void init_FrameCreation(FXEWindow* theWindow, FXEGraphicPipeline* theGraphicPipeline);
 	void cleanup_SwapChain(VkDevice device);
 	void cleanup_Semaphores(VkDevice device);
 	void draw_Frame(VkDevice device, VkPhysicalDevice physicalDevice, VkQueue presentQueue, VkQueue graphicsQueue, VkBuffer vertexBuffer, uint32_t vertexCount);
 
+	/*Public Methods*/
+	//Methods for creating different objects needed to draw the frame
 	void create_SwapChain(VkPhysicalDevice physicalDevice, VkDevice device);
 	void create_ImageViews(VkDevice device);
 	void create_FrameBuffer(VkDevice device);
-	void create_CommandPool(VkDevice device, QueueFamilyIndices indices);
+	void create_CommandPool(VkDevice device, VkPhysicalDevice physcialDevice);
 	void create_CommandBuffer(VkDevice device);
 	void create_SyncObjects(VkDevice device);
-
 	static SwapChainSupportDetails query_SwapChainSupport(const VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface);
 
+	/*Public Variables*/
 	VkFormat SwapChainImageFormat;
 	bool FramebufferRezised = false;
 
 private:
+	/*Private Methods*/
 	void recreate_SwapChain(VkDevice device, VkPhysicalDevice physicalDevice);
 	void record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t imageIndex, VkBuffer vertexBuffer);
 
@@ -43,6 +48,8 @@ private:
 	static VkExtent2D choose_SwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window);
 	static QueueFamilyIndices find_QueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
 
+	/*Private Variables*/
+	//Pointers to the the window and graphic pipeline class to get easier access to its variables
 	FXEWindow* TheWindowPtr;
 	FXEGraphicPipeline* TheGraphicPipelinePtr;
 

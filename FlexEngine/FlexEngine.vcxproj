@@ -23,6 +23,7 @@
     <ClCompile Include="Code Files\FXE_DebugMessenger.cpp" />
     <ClCompile Include="Code Files\FXE_FrameCreation.cpp" />
     <ClCompile Include="Code Files\FXE_GraphicPipeline.cpp" />
+    <ClCompile Include="Code Files\FXE_VertexBuffer.cpp" />
     <ClCompile Include="Code Files\FXE_Window.cpp" />
     <ClCompile Include="Code Files\main.cpp" />
   </ItemGroup>
@@ -32,6 +33,7 @@
     <ClInclude Include="Code Files\FXE_DebugMessenger.h" />
     <ClInclude Include="Code Files\FXE_FrameCreation.h" />
     <ClInclude Include="Code Files\FXE_GraphicPipeline.h" />
+    <ClInclude Include="Code Files\FXE_VertexBuffer.h" />
     <ClInclude Include="Code Files\FXE_Window.h" />
   </ItemGroup>
   <ItemGroup>

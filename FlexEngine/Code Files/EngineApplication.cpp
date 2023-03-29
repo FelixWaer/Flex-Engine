@@ -110,7 +110,7 @@ void FlexEngine::initVulkan()
     TheFrameCreation.create_ImageViews(Device);
     TheGraphicPipeline.init_GraphicsPipeline(Device, TheFrameCreation.SwapChainImageFormat);
     TheFrameCreation.create_FrameBuffer(Device);
-    TheFrameCreation.create_CommandPool(Device, findQueueFamilies(PhysicalDevice));
+    TheFrameCreation.create_CommandPool(Device, PhysicalDevice);
     createVertexBuffer();
     TheFrameCreation.create_CommandBuffer(Device);
     TheFrameCreation.create_SyncObjects(Device);

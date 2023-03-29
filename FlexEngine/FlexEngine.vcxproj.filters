@@ -36,6 +36,9 @@
     <ClCompile Include="Code Files\FXE_FrameCreation.cpp">
       <Filter>Resource Files</Filter>
     </ClCompile>
+    <ClCompile Include="Code Files\FXE_VertexBuffer.cpp">
+      <Filter>Resource Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Code Files\EngineApplication.h">
@@ -54,6 +57,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Code Files\Debug_Macros.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Code Files\FXE_VertexBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

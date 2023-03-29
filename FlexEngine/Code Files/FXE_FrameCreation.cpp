@@ -34,12 +34,18 @@ struct QueueFamilyIndices
     }
 };
 
+/*---------------------------------*/
+/*----------Main Methods-----------*/
+/*---------------------------------*/
+
+//initializing the pointers pointing to the window and graphics class
 void FXEFrameCreation::init_FrameCreation(FXEWindow* theWindow, FXEGraphicPipeline* theGraphicPipeline)
 {
     TheWindowPtr = theWindow;
     TheGraphicPipelinePtr = theGraphicPipeline;
 }
 
+//cleaning up the swap chain at the end of the program
 void FXEFrameCreation::cleanup_SwapChain(VkDevice device)
 {
     for (size_t i = 0; i < SwapChainFramebuffers.size(); i++)
@@ -55,6 +61,7 @@ void FXEFrameCreation::cleanup_SwapChain(VkDevice device)
     vkDestroySwapchainKHR(device, SwapChain, nullptr);
 }
 
+//cleaning up the semaphores at the end of the program
 void FXEFrameCreation::cleanup_Semaphores(VkDevice device)
 {
     for (size_t i = 0; i < MaxFramesInFlight; i++)
@@ -67,6 +74,7 @@ void FXEFrameCreation::cleanup_Semaphores(VkDevice device)
     vkDestroyCommandPool(device, CommandPool, nullptr);
 }
 
+//Method that draws the frame on the screen
 void FXEFrameCreation::draw_Frame(VkDevice device, VkPhysicalDevice physcialDevice, VkQueue presentQueue, VkQueue graphicsQueue, VkBuffer vertexBuffer, uint32_t vertexCount)
 {
     vkWaitForFences(device, 1, &InFlightFences[CurrentFrame], VK_TRUE, UINT64_MAX);
@@ -138,6 +146,10 @@ void FXEFrameCreation::draw_Frame(VkDevice device, VkPhysicalDevice physcialDevi
 
     CurrentFrame = (CurrentFrame + 1) % MaxFramesInFlight;
 }
+
+/*---------------------------------*/
+/*---------Public Methods----------*/
+/*---------------------------------*/
 
 //creates a working swap chain with all preferred settings
 void FXEFrameCreation::create_SwapChain(VkPhysicalDevice physicalDevice, VkDevice device)
@@ -253,22 +265,9 @@ void FXEFrameCreation::create_FrameBuffer(VkDevice device)
     }
 }
 
-//recreating the swap chain
-void FXEFrameCreation::recreate_SwapChain(VkDevice device, VkPhysicalDevice physicalDevice)
+void FXEFrameCreation::create_CommandPool(VkDevice device, VkPhysicalDevice physcialDevice)
 {
-    TheWindowPtr->windowMinimized();
-
-    vkDeviceWaitIdle(device);
-
-    cleanup_SwapChain(device);
-    create_SwapChain(physicalDevice, device);
-    create_ImageViews(device);
-    create_FrameBuffer(device);
-}
-
-void FXEFrameCreation::create_CommandPool(VkDevice device, QueueFamilyIndices indices)
-{
-    QueueFamilyIndices queueFamilyIndices = indices;
+    QueueFamilyIndices queueFamilyIndices = find_QueueFamilies(physcialDevice, TheWindowPtr->Surface);
 
     VkCommandPoolCreateInfo commandPoolInfo{};
     commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -295,6 +294,75 @@ void FXEFrameCreation::create_CommandBuffer(VkDevice device)
     {
         throw std::runtime_error("failed to allocate command buffer!");
     }
+}
+
+void FXEFrameCreation::create_SyncObjects(VkDevice device)
+{
+    ImageAvailableSemaphores.resize(MaxFramesInFlight);
+    RenderFinishedSemaphores.resize(MaxFramesInFlight);
+    InFlightFences.resize(MaxFramesInFlight);
+
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    for (size_t i = 0; i < MaxFramesInFlight; i++)
+    {
+        if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &ImageAvailableSemaphores[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(device, &semaphoreInfo, nullptr, &RenderFinishedSemaphores[i]) != VK_SUCCESS ||
+            vkCreateFence(device, &fenceInfo, nullptr, &InFlightFences[i]) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create semaphores!");
+        }
+    }
+}
+
+//Checks if swap chain is compatible with our window surface
+SwapChainSupportDetails FXEFrameCreation::query_SwapChainSupport(const VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface)
+{
+    SwapChainSupportDetails details;
+
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &details.capabilities);
+
+    uint32_t formatCount;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
+
+    if (formatCount != 0)
+    {
+        details.formats.resize(formatCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, details.formats.data());
+    }
+
+    uint32_t presentModeCount;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr);
+
+    if (presentModeCount != 0)
+    {
+        details.presentModes.resize(presentModeCount);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, details.presentModes.data());
+    }
+
+    return details;
+}
+
+/*---------------------------------*/
+/*--------Private Methods----------*/
+/*---------------------------------*/
+
+//recreating the swap chain
+void FXEFrameCreation::recreate_SwapChain(VkDevice device, VkPhysicalDevice physicalDevice)
+{
+    TheWindowPtr->windowMinimized();
+
+    vkDeviceWaitIdle(device);
+
+    cleanup_SwapChain(device);
+    create_SwapChain(physicalDevice, device);
+    create_ImageViews(device);
+    create_FrameBuffer(device);
 }
 
 void FXEFrameCreation::record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t imageIndex, VkBuffer vertexBuffer)
@@ -350,58 +418,6 @@ void FXEFrameCreation::record_CommandBuffer(VkCommandBuffer commandBuffer, uint3
     }
 
 
-}
-
-void FXEFrameCreation::create_SyncObjects(VkDevice device)
-{
-    ImageAvailableSemaphores.resize(MaxFramesInFlight);
-    RenderFinishedSemaphores.resize(MaxFramesInFlight);
-    InFlightFences.resize(MaxFramesInFlight);
-
-    VkSemaphoreCreateInfo semaphoreInfo{};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-    VkFenceCreateInfo fenceInfo{};
-    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-    for (size_t i = 0; i < MaxFramesInFlight; i++)
-    {
-        if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &ImageAvailableSemaphores[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(device, &semaphoreInfo, nullptr, &RenderFinishedSemaphores[i]) != VK_SUCCESS ||
-            vkCreateFence(device, &fenceInfo, nullptr, &InFlightFences[i]) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create semaphores!");
-        }
-    }
-}
-
-//Checks if swap chain is compatible with our window surface
-SwapChainSupportDetails FXEFrameCreation::query_SwapChainSupport(const VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface)
-{
-    SwapChainSupportDetails details;
-
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &details.capabilities);
-
-    uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
-
-    if (formatCount != 0)
-    {
-        details.formats.resize(formatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, details.formats.data());
-    }
-
-    uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr);
-
-    if (presentModeCount != 0)
-    {
-        details.presentModes.resize(presentModeCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, details.presentModes.data());
-    }
-
-    return details;
 }
 
 //Checks for if swap chain supports best possible surface format, else takes the first surface format available
