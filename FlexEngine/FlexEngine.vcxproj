@@ -28,8 +28,8 @@
     <ClCompile Include="Code Files\main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Code Files\Debug_Macros.h" />
     <ClInclude Include="Code Files\EngineApplication.h" />
+    <ClInclude Include="Code Files\ExtraFunctions.h" />
     <ClInclude Include="Code Files\FXE_DebugMessenger.h" />
     <ClInclude Include="Code Files\FXE_FrameCreation.h" />
     <ClInclude Include="Code Files\FXE_GraphicPipeline.h" />

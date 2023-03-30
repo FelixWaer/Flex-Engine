@@ -13,16 +13,17 @@ struct QueueFamilyIndices;
 
 class FXEWindow;
 class FXEGraphicPipeline;
+class FXEVertexBuffer;
 
 class FXEFrameCreation
 {
 public:
 	/*Main Methods*/
 	//methods for initalizing frame creation, cleaning up frame creation and for drawing the frame
-	void init_FrameCreation(FXEWindow* theWindow, FXEGraphicPipeline* theGraphicPipeline);
+	void init_FrameCreation(FXEWindow* theWindow, FXEGraphicPipeline* theGraphicPipeline, FXEVertexBuffer* theVertexBuffer);
 	void cleanup_SwapChain(VkDevice device);
 	void cleanup_Semaphores(VkDevice device);
-	void draw_Frame(VkDevice device, VkPhysicalDevice physicalDevice, VkQueue presentQueue, VkQueue graphicsQueue, VkBuffer vertexBuffer, uint32_t vertexCount);
+	void draw_Frame(VkDevice device, VkPhysicalDevice physicalDevice, VkQueue presentQueue, VkQueue graphicsQueue);
 
 	/*Public Methods*/
 	//Methods for creating different objects needed to draw the frame
@@ -32,7 +33,6 @@ public:
 	void create_CommandPool(VkDevice device, VkPhysicalDevice physcialDevice);
 	void create_CommandBuffer(VkDevice device);
 	void create_SyncObjects(VkDevice device);
-	static SwapChainSupportDetails query_SwapChainSupport(const VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface);
 
 	/*Public Variables*/
 	VkFormat SwapChainImageFormat;
@@ -41,17 +41,17 @@ public:
 private:
 	/*Private Methods*/
 	void recreate_SwapChain(VkDevice device, VkPhysicalDevice physicalDevice);
-	void record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t imageIndex, VkBuffer vertexBuffer);
+	void record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
 	static VkSurfaceFormatKHR choose_SwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableSurfaceFormats);
 	static VkPresentModeKHR choose_SwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 	static VkExtent2D choose_SwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window);
-	static QueueFamilyIndices find_QueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
 
 	/*Private Variables*/
 	//Pointers to the the window and graphic pipeline class to get easier access to its variables
 	FXEWindow* TheWindowPtr;
 	FXEGraphicPipeline* TheGraphicPipelinePtr;
+	FXEVertexBuffer* TheVertexBufferPtr;
 
 	//swap chain variables
 	VkSwapchainKHR SwapChain;

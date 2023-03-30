@@ -7,42 +7,23 @@
 
 #include "FXE_Window.h"
 #include "FXE_GraphicPipeline.h"
+#include "FXE_VertexBuffer.h"
+#include "ExtraFunctions.h"
 
 #define TIME(x) x = std::chrono::high_resolution_clock::now();
 #define PRINT_TIME_NS(text, start, end) std::cout << text << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 #define PRINT_TIME_MS(text, start, end) std::cout << text << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
 
 /*---------------------------------*/
-/*-------------Structs-------------*/
-/*---------------------------------*/
-
-struct SwapChainSupportDetails
-{
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
-};
-
-struct QueueFamilyIndices
-{
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
-
-    bool isComplete()
-    {
-        return graphicsFamily.has_value() && presentFamily.has_value();
-    }
-};
-
-/*---------------------------------*/
 /*----------Main Methods-----------*/
 /*---------------------------------*/
 
 //initializing the pointers pointing to the window and graphics class
-void FXEFrameCreation::init_FrameCreation(FXEWindow* theWindow, FXEGraphicPipeline* theGraphicPipeline)
+void FXEFrameCreation::init_FrameCreation(FXEWindow* theWindow, FXEGraphicPipeline* theGraphicPipeline, FXEVertexBuffer* theVertexBuffer)
 {
     TheWindowPtr = theWindow;
     TheGraphicPipelinePtr = theGraphicPipeline;
+    TheVertexBufferPtr = theVertexBuffer;
 }
 
 //cleaning up the swap chain at the end of the program
@@ -75,7 +56,7 @@ void FXEFrameCreation::cleanup_Semaphores(VkDevice device)
 }
 
 //Method that draws the frame on the screen
-void FXEFrameCreation::draw_Frame(VkDevice device, VkPhysicalDevice physcialDevice, VkQueue presentQueue, VkQueue graphicsQueue, VkBuffer vertexBuffer, uint32_t vertexCount)
+void FXEFrameCreation::draw_Frame(VkDevice device, VkPhysicalDevice physicalDevice, VkQueue presentQueue, VkQueue graphicsQueue)
 {
     vkWaitForFences(device, 1, &InFlightFences[CurrentFrame], VK_TRUE, UINT64_MAX);
 
@@ -84,7 +65,7 @@ void FXEFrameCreation::draw_Frame(VkDevice device, VkPhysicalDevice physcialDevi
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
         TIME(auto start)
-            recreate_SwapChain(device, physcialDevice);
+            recreate_SwapChain(device, physicalDevice);
         TIME(auto end)
             PRINT_TIME_MS("time to recreate: ", start, end)
             return;
@@ -97,7 +78,7 @@ void FXEFrameCreation::draw_Frame(VkDevice device, VkPhysicalDevice physcialDevi
     vkResetFences(device, 1, &InFlightFences[CurrentFrame]);
 
     vkResetCommandBuffer(CommandBuffers[CurrentFrame], 0);
-    record_CommandBuffer(CommandBuffers[CurrentFrame], vertexCount, imageIndex, vertexBuffer);
+    record_CommandBuffer(CommandBuffers[CurrentFrame], imageIndex);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -135,7 +116,7 @@ void FXEFrameCreation::draw_Frame(VkDevice device, VkPhysicalDevice physcialDevi
         FramebufferRezised = false;
 
         TIME(auto start);
-        recreate_SwapChain(device, physcialDevice);
+        recreate_SwapChain(device, physicalDevice);
         TIME(auto end);
         PRINT_TIME_MS("time to recreate: ", start, end)
     }
@@ -154,7 +135,7 @@ void FXEFrameCreation::draw_Frame(VkDevice device, VkPhysicalDevice physcialDevi
 //creates a working swap chain with all preferred settings
 void FXEFrameCreation::create_SwapChain(VkPhysicalDevice physicalDevice, VkDevice device)
 {
-    SwapChainSupportDetails swapChainSupport = query_SwapChainSupport(physicalDevice, TheWindowPtr->Surface);
+    FXE::SwapChainSupportDetails swapChainSupport = FXE::query_SwapChainSupport(physicalDevice, TheWindowPtr->Surface);
 
     VkSurfaceFormatKHR surfaceFormat = choose_SwapSurfaceFormat(swapChainSupport.formats);
     VkPresentModeKHR presentMode = choose_SwapPresentMode(swapChainSupport.presentModes);
@@ -177,7 +158,7 @@ void FXEFrameCreation::create_SwapChain(VkPhysicalDevice physicalDevice, VkDevic
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    QueueFamilyIndices indices = find_QueueFamilies(physicalDevice, TheWindowPtr->Surface);
+    FXE::QueueFamilyIndices indices = FXE::find_QueueFamilies(physicalDevice, TheWindowPtr->Surface);
     uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
     if (indices.graphicsFamily != indices.presentFamily)
@@ -267,16 +248,16 @@ void FXEFrameCreation::create_FrameBuffer(VkDevice device)
 
 void FXEFrameCreation::create_CommandPool(VkDevice device, VkPhysicalDevice physcialDevice)
 {
-    QueueFamilyIndices queueFamilyIndices = find_QueueFamilies(physcialDevice, TheWindowPtr->Surface);
+    FXE::QueueFamilyIndices indices = FXE::find_QueueFamilies(physcialDevice, TheWindowPtr->Surface);
 
     VkCommandPoolCreateInfo commandPoolInfo{};
     commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    commandPoolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+    commandPoolInfo.queueFamilyIndex = indices.graphicsFamily.value();
 
     if (vkCreateCommandPool(device, &commandPoolInfo, nullptr, &CommandPool) != VK_SUCCESS)
     {
-        throw std::runtime_error("failed to create command pools!");
+        throw std::runtime_error("failed to create command pool!");
     }
 }
 
@@ -320,34 +301,6 @@ void FXEFrameCreation::create_SyncObjects(VkDevice device)
     }
 }
 
-//Checks if swap chain is compatible with our window surface
-SwapChainSupportDetails FXEFrameCreation::query_SwapChainSupport(const VkPhysicalDevice& physicalDevice, VkSurfaceKHR surface)
-{
-    SwapChainSupportDetails details;
-
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &details.capabilities);
-
-    uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
-
-    if (formatCount != 0)
-    {
-        details.formats.resize(formatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, details.formats.data());
-    }
-
-    uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr);
-
-    if (presentModeCount != 0)
-    {
-        details.presentModes.resize(presentModeCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, details.presentModes.data());
-    }
-
-    return details;
-}
-
 /*---------------------------------*/
 /*--------Private Methods----------*/
 /*---------------------------------*/
@@ -365,7 +318,7 @@ void FXEFrameCreation::recreate_SwapChain(VkDevice device, VkPhysicalDevice phys
     create_FrameBuffer(device);
 }
 
-void FXEFrameCreation::record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t imageIndex, VkBuffer vertexBuffer)
+void FXEFrameCreation::record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -405,10 +358,10 @@ void FXEFrameCreation::record_CommandBuffer(VkCommandBuffer commandBuffer, uint3
     scissor.extent = SwapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    VkBuffer vertexBuffers[] = { vertexBuffer };
+    VkBuffer vertexBuffers[] = { TheVertexBufferPtr->VertexBuffer };
     VkDeviceSize offsets[] = { 0 };
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-    vkCmdDraw(commandBuffer, vertexCount, 1, 0, 0);
+    vkCmdDraw(commandBuffer, TheVertexBufferPtr->VertexCount, 1, 0, 0);
 
     vkCmdEndRenderPass(commandBuffer);
 
@@ -469,40 +422,4 @@ VkExtent2D FXEFrameCreation::choose_SwapExtent(const VkSurfaceCapabilitiesKHR& c
 
         return actualExtent;
     }
-}
-
-QueueFamilyIndices FXEFrameCreation::find_QueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
-{
-    QueueFamilyIndices indices;
-
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
-
-    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
-
-    int i = 0;
-    for (const auto& queueFamily : queueFamilies)
-    {
-        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-        {
-            indices.graphicsFamily = i;
-        }
-
-        VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &presentSupport);
-
-        if (presentSupport)
-        {
-            indices.presentFamily = i;
-        }
-
-        if (indices.isComplete())
-        {
-            break;
-        }
-        i++;
-    }
-
-    return indices;
 }

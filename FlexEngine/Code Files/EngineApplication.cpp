@@ -14,6 +14,8 @@
 
 #include <glm/glm.hpp>
 
+#include "ExtraFunctions.h"
+
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
 const bool debugMode = false;
@@ -26,69 +28,9 @@ const bool debugMode = true;
 #define PRINT_TIME_NS(text, start, end) std::cout << text << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 #define PRINT_TIME_MS(text, start, end) std::cout << text << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
 
-
-/*---------------------------------*/
-/*-------------Structs-------------*/
-/*---------------------------------*/
-struct QueueFamilyIndices
-{
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
-
-    bool isComplete()
-    {
-        return graphicsFamily.has_value() && presentFamily.has_value();
-    }
-};
-
-struct SwapChainSupportDetails
-{
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
-};
-
-struct Vertex
-{
-
-    glm::vec2 pos;
-    glm::vec3 color;
-
-    static VkVertexInputBindingDescription getBindingDescription()
-    {
-        VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        return bindingDescription;
-    }
-
-    static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-        return attributeDescriptions;
-    }
-};
-
 /*---------------------------------*/
 /*----------Const Vector-----------*/
 /*---------------------------------*/
-
-const std::vector<Vertex> vertices = {
-    {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
-};
 
 const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
 const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
@@ -100,7 +42,7 @@ const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_N
 void FlexEngine::initVulkan()
 {
     TIME(auto start)
-	TheFrameCreation.init_FrameCreation(&TheWindow, &TheGraphicPipeline);
+	TheFrameCreation.init_FrameCreation(&TheWindow, &TheGraphicPipeline, &TheVertexBuffer);
     createInstance();
     TheDebugMessenger.setup_DebugMessenger(Instance);
     TheWindow.createSurface(Instance);
@@ -111,24 +53,20 @@ void FlexEngine::initVulkan()
     TheGraphicPipeline.init_GraphicsPipeline(Device, TheFrameCreation.SwapChainImageFormat);
     TheFrameCreation.create_FrameBuffer(Device);
     TheFrameCreation.create_CommandPool(Device, PhysicalDevice);
-    createVertexBuffer();
+    TheVertexBuffer.init_VertexBuffer(Device, PhysicalDevice, TheWindow.Surface, GraphicsQueue);
     TheFrameCreation.create_CommandBuffer(Device);
     TheFrameCreation.create_SyncObjects(Device);
     TIME(auto end)
 	PRINT_TIME_MS("time to initialize Vulkan: ", start, end)
 }
 
-
 void FlexEngine::mainLoop()
 {
 
 	while (!TheWindow.windowClosing())
 	{
-        TIME(auto start)
 		glfwPollEvents();
-        TheFrameCreation.draw_Frame(Device, PhysicalDevice, PresentQueue, GraphicsQueue, VertexBuffer, static_cast<uint32_t>(vertices.size()));
-        TIME(auto end)
-		PRINT_TIME_NS("ms per frame ", start, end)
+        TheFrameCreation.draw_Frame(Device, PhysicalDevice, PresentQueue, GraphicsQueue);
 	}
     vkDeviceWaitIdle(Device);
 }
@@ -137,10 +75,10 @@ void FlexEngine::cleanup()
 {
     TheFrameCreation.cleanup_SwapChain(Device);
 
-    vkDestroyBuffer(Device, VertexBuffer, nullptr);
-    vkFreeMemory(Device, VertexBufferMemory, nullptr);
+    TheVertexBuffer.cleanup(Device);
     TheGraphicPipeline.cleanup(Device);
     TheFrameCreation.cleanup_Semaphores(Device);
+
     vkDestroyDevice(Device, nullptr);
 
 	if (enableValidationLayers)
@@ -237,7 +175,7 @@ void FlexEngine::pickPhysicalDevice()
 bool FlexEngine::isDeviceSuitable(VkPhysicalDevice physicalDevice)
 {
 	//find queue families and checks if its suitable
-    QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+    FXE::QueueFamilyIndices indices = FXE::find_QueueFamilies(physicalDevice, TheWindow.Surface);
 
     //checks if GPU supports swap chain and swap chain support drawing on our surface
     bool extensionsSupported = checkDeviceExtensionSupport(physicalDevice);
@@ -245,53 +183,16 @@ bool FlexEngine::isDeviceSuitable(VkPhysicalDevice physicalDevice)
     bool swapChainAdequate = false;
 	if (extensionsSupported)
 	{
-        SwapChainSupportDetails swapChainSupport = FXEFrameCreation::query_SwapChainSupport(physicalDevice, TheWindow.Surface);
+        FXE::SwapChainSupportDetails swapChainSupport = FXE::query_SwapChainSupport(physicalDevice, TheWindow.Surface);
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
 	}
 
     return indices.isComplete() && extensionsSupported && swapChainAdequate;
 }
 
-//Finds the queue families in the GPU that is needed
-QueueFamilyIndices FlexEngine::findQueueFamilies(VkPhysicalDevice device)
-{
-    QueueFamilyIndices indices;
-
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-
-    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
-
-    int i = 0;
-    for (const auto& queueFamily : queueFamilies)
-    {
-	    if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-	    {
-            indices.graphicsFamily = i;
-	    }
-
-        VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, TheWindow.Surface, &presentSupport);
-
-	    if (presentSupport)
-	    {
-            indices.presentFamily = i;
-	    }
-
-	    if (indices.isComplete())
-	    {
-            break;
-	    }
-        i++;
-    }
-
-    return indices;
-}
-
 void FlexEngine::createLogicalDevice()
 {
-    QueueFamilyIndices indices = findQueueFamilies(PhysicalDevice);
+    FXE::QueueFamilyIndices indices = FXE::find_QueueFamilies(PhysicalDevice, TheWindow.Surface);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value()};
@@ -375,57 +276,6 @@ void FlexEngine::framebufferResizeCallback(GLFWwindow* window, int width, int he
 {
     auto app = reinterpret_cast<FlexEngine*>(glfwGetWindowUserPointer(window));
     app->TheFrameCreation.FramebufferRezised = true;
-}
-
-void FlexEngine::createVertexBuffer()
-{
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = sizeof(vertices[0]) * vertices.size();
-    bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    if (vkCreateBuffer(Device, &bufferInfo, nullptr, &VertexBuffer) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create vertex buffer!");
-    }
-
-    VkMemoryRequirements memoryRequirements;
-    vkGetBufferMemoryRequirements(Device, VertexBuffer, &memoryRequirements);
-
-    VkMemoryAllocateInfo memoryAllocInfo{};
-    memoryAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    memoryAllocInfo.allocationSize = memoryRequirements.size;
-    memoryAllocInfo.memoryTypeIndex = findMemoryType(memoryRequirements.memoryTypeBits, 
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    if (vkAllocateMemory(Device, &memoryAllocInfo, nullptr, &VertexBufferMemory) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to allocate vertex buffer memory!");
-    }
-
-    vkBindBufferMemory(Device, VertexBuffer, VertexBufferMemory, 0);
-
-    void* data;
-    vkMapMemory(Device, VertexBufferMemory, 0, bufferInfo.size, 0, &data);
-    memcpy(data, vertices.data(), (size_t) bufferInfo.size);
-    vkUnmapMemory(Device, VertexBufferMemory);
-}
-
-uint32_t FlexEngine::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
-{
-    VkPhysicalDeviceMemoryProperties memoryProperties;
-    vkGetPhysicalDeviceMemoryProperties(PhysicalDevice, &memoryProperties);
-
-    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
-    {
-	    if ((typeFilter & (1 << i) && (memoryProperties.memoryTypes[i].propertyFlags & properties) == properties))
-	    {
-            return i;
-	    }
-    }
-
-    throw std::runtime_error("failed to find suitable memory type!");
 }
 
 /*---------------------------------*/

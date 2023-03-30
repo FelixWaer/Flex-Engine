@@ -12,9 +12,7 @@
 #include "FXE_GraphicPipeline.h"
 #include "FXE_DebugMessenger.h"
 #include "FXE_FrameCreation.h"
-
-struct QueueFamilyIndices;
-struct SwapChainSupportDetails;
+#include "FXE_VertexBuffer.h"
 
 class FlexEngine {
 public:
@@ -38,12 +36,9 @@ private:
     void pickPhysicalDevice();
     bool isDeviceSuitable(VkPhysicalDevice physicalDevice);
     static bool checkValidationLayerSupport();
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     void createLogicalDevice();
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
-
-    void createVertexBuffer();
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
     //Extension Support Methods
@@ -57,15 +52,13 @@ private:
     FXEGraphicPipeline TheGraphicPipeline;
     FXEDebugMessenger TheDebugMessenger;
     FXEFrameCreation TheFrameCreation;
+    FXEVertexBuffer TheVertexBuffer;
 
     VkInstance Instance;
     VkPhysicalDevice PhysicalDevice = VK_NULL_HANDLE;
     VkDevice Device;
     VkQueue GraphicsQueue;
     VkQueue PresentQueue;
-
-    VkBuffer VertexBuffer;
-    VkDeviceMemory VertexBufferMemory;
 
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
