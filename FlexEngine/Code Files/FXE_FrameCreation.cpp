@@ -360,8 +360,11 @@ void FXEFrameCreation::record_CommandBuffer(VkCommandBuffer commandBuffer, uint3
 
     VkBuffer vertexBuffers[] = { TheVertexBufferPtr->VertexBuffer };
     VkDeviceSize offsets[] = { 0 };
+
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-    vkCmdDraw(commandBuffer, TheVertexBufferPtr->VertexCount, 1, 0, 0);
+    vkCmdBindIndexBuffer(commandBuffer, TheVertexBufferPtr->IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
+
+    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(FXE::Indices.size()), 1, 0, 0, 0);
 
     vkCmdEndRenderPass(commandBuffer);
 

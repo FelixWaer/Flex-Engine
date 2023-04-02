@@ -8,12 +8,6 @@
 
 #include "ExtraFunctions.h"
 
-const std::vector<FXE::Vertex> vertices = {
-    {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
-};
-
 /*---------------------------------*/
 /*---------Public Methods----------*/
 /*---------------------------------*/
@@ -22,10 +16,13 @@ void FXEVertexBuffer::init_VertexBuffer(VkDevice device, VkPhysicalDevice physic
 {
     create_VertexCommandPool(device, physicalDevice, surface);
     create_VertexBuffer(device, physicalDevice, graphicsQueue);
+    create_IndexBuffer(device, physicalDevice, graphicsQueue);
 }
 
 void FXEVertexBuffer::cleanup(VkDevice device)
 {
+    vkDestroyBuffer(device, IndexBuffer, nullptr);
+    vkFreeMemory(device, IndexBufferMemory, nullptr);
     vkDestroyBuffer(device, VertexBuffer, nullptr);
     vkFreeMemory(device, VertexBufferMemory, nullptr);
     vkDestroyCommandPool(device, VertexCommandPool, nullptr);
@@ -33,9 +30,7 @@ void FXEVertexBuffer::cleanup(VkDevice device)
 
 void FXEVertexBuffer::create_VertexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkQueue graphicsQueue)
 {
-    VertexCount = static_cast<uint32_t>(vertices.size());
-
-    VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+    VkDeviceSize bufferSize = sizeof(FXE::vertices[0]) * FXE::vertices.size();
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -45,13 +40,37 @@ void FXEVertexBuffer::create_VertexBuffer(VkDevice device, VkPhysicalDevice phys
 
     void* data;
     vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, vertices.data(),bufferSize);
+    memcpy(data, FXE::vertices.data(),bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
     create_Buffer(device, physicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VertexBuffer, VertexBufferMemory);
 
     copy_Buffer(device, graphicsQueue, stagingBuffer, VertexBuffer, bufferSize);
+
+    vkDestroyBuffer(device, stagingBuffer, nullptr);
+    vkFreeMemory(device, stagingBufferMemory, nullptr);
+}
+
+void FXEVertexBuffer::create_IndexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkQueue graphicsQueue)
+{
+    VkDeviceSize bufferSize = sizeof(FXE::Indices[0]) * FXE::Indices.size();
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    create_Buffer(device, physicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+
+    void* data;
+    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, FXE::Indices.data(), bufferSize);
+    vkUnmapMemory(device, stagingBufferMemory);
+
+    create_Buffer(device, physicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, IndexBuffer, IndexBufferMemory);
+
+    copy_Buffer(device, graphicsQueue, stagingBuffer, IndexBuffer, bufferSize);
 
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);

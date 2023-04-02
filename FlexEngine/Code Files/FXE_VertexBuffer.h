@@ -6,6 +6,8 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
+#include <vector>
+
 class FXEVertexBuffer
 {
 public:
@@ -13,11 +15,14 @@ public:
 	void cleanup(VkDevice device);
 
 	void create_VertexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkQueue graphicsQueue);
+	void create_IndexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkQueue graphicsQueue);
 	void create_VertexCommandPool(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
 
 	VkBuffer VertexBuffer;
 	VkDeviceMemory VertexBufferMemory;
-	uint32_t VertexCount;
+	VkBuffer IndexBuffer;
+	VkDeviceMemory IndexBufferMemory;
+
 private:
 	static void create_Buffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 	void copy_Buffer(VkDevice device, VkQueue graphicsQueue, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
