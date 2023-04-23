@@ -16,10 +16,10 @@ const bool debugMode = true;
 /*-------------Methods-------------*/
 /*---------------------------------*/
 
-void FXEGraphicPipeline::init_GraphicsPipeline(VkDevice device, VkFormat swapChainImageFormat)
+void FXEGraphicPipeline::init_GraphicsPipeline(VkDevice device, VkFormat swapChainImageFormat, VkDescriptorSetLayout descriptorSetLayout)
 {
     create_RenderPass(device, swapChainImageFormat);
-    create_GraphicsPipeline(device);
+    create_GraphicsPipeline(device, descriptorSetLayout);
 }
 
 //cleaning up the data made in the graphics pipeline class at the end of the program
@@ -32,7 +32,7 @@ void FXEGraphicPipeline::cleanup(VkDevice device)
 
 //fill more info
 //creating the graphics pipeline
-void FXEGraphicPipeline::create_GraphicsPipeline(VkDevice device)
+void FXEGraphicPipeline::create_GraphicsPipeline(VkDevice device, VkDescriptorSetLayout descriptorSetLayout)
 {
     auto vertShaderCode = readFile("Code Files/Shader/vert.spv");
     auto fragShaderCode = readFile("Code Files/Shader/frag.spv");
@@ -130,8 +130,8 @@ void FXEGraphicPipeline::create_GraphicsPipeline(VkDevice device)
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 0;
-    pipelineLayoutInfo.pSetLayouts = nullptr;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
     pipelineLayoutInfo.pushConstantRangeCount = 0;
     pipelineLayoutInfo.pPushConstantRanges = nullptr;
 

@@ -17,11 +17,13 @@ public:
 	void create_VertexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkQueue graphicsQueue);
 	void create_IndexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkQueue graphicsQueue);
 	void create_VertexCommandPool(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
+	void create_DescriptorSetLayout(VkDevice device);
 
 	VkBuffer VertexBuffer;
 	VkDeviceMemory VertexBufferMemory;
 	VkBuffer IndexBuffer;
 	VkDeviceMemory IndexBufferMemory;
+	VkDescriptorSetLayout DescriptorSetLayout;
 
 private:
 	static void create_Buffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);

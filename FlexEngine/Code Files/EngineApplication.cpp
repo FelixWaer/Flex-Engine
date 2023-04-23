@@ -42,15 +42,15 @@ const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_N
 void FlexEngine::initVulkan()
 {
     TIME(auto start)
-	TheFrameCreation.init_FrameCreation(&TheWindow, &TheGraphicPipeline, &TheVertexBuffer);
     createInstance();
     TheDebugMessenger.setup_DebugMessenger(Instance);
     TheWindow.createSurface(Instance);
     pickPhysicalDevice();
     createLogicalDevice();
+    TheFrameCreation.init_FrameCreation(&TheWindow, &TheGraphicPipeline, &TheVertexBuffer);
     TheFrameCreation.create_SwapChain(PhysicalDevice, Device);
     TheFrameCreation.create_ImageViews(Device);
-    TheGraphicPipeline.init_GraphicsPipeline(Device, TheFrameCreation.SwapChainImageFormat);
+    TheGraphicPipeline.init_GraphicsPipeline(Device, TheFrameCreation.SwapChainImageFormat, TheVertexBuffer.DescriptorSetLayout);
     TheFrameCreation.create_FrameBuffer(Device);
     TheFrameCreation.create_CommandPool(Device, PhysicalDevice);
     TheVertexBuffer.init_VertexBuffer(Device, PhysicalDevice, TheWindow.Surface, GraphicsQueue);

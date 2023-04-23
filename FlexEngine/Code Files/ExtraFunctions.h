@@ -37,7 +37,6 @@ namespace FXE
 
     struct Vertex
     {
-
         glm::vec2 pos;
         glm::vec3 color;
 
@@ -67,6 +66,13 @@ namespace FXE
         }
     };
 
+    struct uniformBufferObject
+    {
+        glm::mat4 model;
+        glm::mat4 view;
+        glm::mat4 proj;
+    };
+
 	/*---------------------------------*/
 	/*----------Vertex Vector----------*/
 	/*---------------------------------*/
@@ -80,7 +86,7 @@ namespace FXE
     };
 
     const std::vector<uint16_t> Indices = {
-    0, 1, 2, 2, 3, 0, 0, 4, 1
+    	0, 1, 2, 2, 3, 0, 0, 4, 1
     };
 
     /*---------------------------------*/
