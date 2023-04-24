@@ -1,5 +1,9 @@
 #include "FXE_FrameCreation.h"
 
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <algorithm>
 #include <iostream>
 #include <optional>
@@ -77,6 +81,7 @@ void FXEFrameCreation::draw_Frame(VkDevice device, VkPhysicalDevice physicalDevi
 
     vkResetFences(device, 1, &InFlightFences[CurrentFrame]);
 
+    update_UniformBuffer(CurrentFrame);
     vkResetCommandBuffer(CommandBuffers[CurrentFrame], 0);
     record_CommandBuffer(CommandBuffers[CurrentFrame], imageIndex);
 
@@ -301,6 +306,11 @@ void FXEFrameCreation::create_SyncObjects(VkDevice device)
     }
 }
 
+int FXEFrameCreation::get_MaxFramesInFlight() const
+{
+    return MaxFramesInFlight;
+}
+
 /*---------------------------------*/
 /*--------Private Methods----------*/
 /*---------------------------------*/
@@ -374,6 +384,22 @@ void FXEFrameCreation::record_CommandBuffer(VkCommandBuffer commandBuffer, uint3
     }
 
 
+}
+
+void FXEFrameCreation::update_UniformBuffer(uint32_t currentImage)
+{
+    static auto startTime = std::chrono::high_resolution_clock::now();
+
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+    FXE::UniformBufferObject ubo{};
+    ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(SwapChainExtent.width) / static_cast<float>(SwapChainExtent.height), 0.1f, 10.0f);
+    ubo.proj[1][1] *= -1;
+
+    memcpy(TheVertexBufferPtr->UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
 //Checks for if swap chain supports best possible surface format, else takes the first surface format available

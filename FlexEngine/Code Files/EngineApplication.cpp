@@ -50,10 +50,11 @@ void FlexEngine::initVulkan()
     TheFrameCreation.init_FrameCreation(&TheWindow, &TheGraphicPipeline, &TheVertexBuffer);
     TheFrameCreation.create_SwapChain(PhysicalDevice, Device);
     TheFrameCreation.create_ImageViews(Device);
+    TheVertexBuffer.create_DescriptorSetLayout(Device);
     TheGraphicPipeline.init_GraphicsPipeline(Device, TheFrameCreation.SwapChainImageFormat, TheVertexBuffer.DescriptorSetLayout);
     TheFrameCreation.create_FrameBuffer(Device);
     TheFrameCreation.create_CommandPool(Device, PhysicalDevice);
-    TheVertexBuffer.init_VertexBuffer(Device, PhysicalDevice, TheWindow.Surface, GraphicsQueue);
+    TheVertexBuffer.init_VertexBuffer(Device, PhysicalDevice, TheWindow.Surface, GraphicsQueue, TheFrameCreation.get_MaxFramesInFlight());
     TheFrameCreation.create_CommandBuffer(Device);
     TheFrameCreation.create_SyncObjects(Device);
     TIME(auto end)

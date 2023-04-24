@@ -12,11 +12,14 @@
 /*---------Public Methods----------*/
 /*---------------------------------*/
 
-void FXEVertexBuffer::init_VertexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQueue graphicsQueue)
+void FXEVertexBuffer::init_VertexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQueue graphicsQueue, int maxFramesInFlight)
 {
+    MaxFramesInFlight = maxFramesInFlight;
+
     create_VertexCommandPool(device, physicalDevice, surface);
     create_VertexBuffer(device, physicalDevice, graphicsQueue);
     create_IndexBuffer(device, physicalDevice, graphicsQueue);
+    create_UniformBuffers(device, physicalDevice);
 }
 
 void FXEVertexBuffer::cleanup(VkDevice device)
@@ -26,6 +29,12 @@ void FXEVertexBuffer::cleanup(VkDevice device)
     vkDestroyBuffer(device, VertexBuffer, nullptr);
     vkFreeMemory(device, VertexBufferMemory, nullptr);
     vkDestroyCommandPool(device, VertexCommandPool, nullptr);
+    vkDestroyDescriptorSetLayout(device, DescriptorSetLayout, nullptr);
+    for (int i = 0; i < MaxFramesInFlight; i++)
+    {
+        vkDestroyBuffer(device, UniformBuffers[i], nullptr);
+        vkFreeMemory(device, UniformBuffersMemory[i], nullptr);
+    }
 }
 
 void FXEVertexBuffer::create_VertexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkQueue graphicsQueue)
@@ -108,6 +117,23 @@ void FXEVertexBuffer::create_DescriptorSetLayout(VkDevice device)
     if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &DescriptorSetLayout) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create descriptor set layout!");
+    }
+}
+
+void FXEVertexBuffer::create_UniformBuffers(VkDevice device, VkPhysicalDevice physicalDevice)
+{
+    VkDeviceSize bufferSize = sizeof(FXE::UniformBufferObject);
+
+    UniformBuffers.resize(MaxFramesInFlight);
+    UniformBuffersMemory.resize(MaxFramesInFlight);
+    UniformBuffersMapped.resize(MaxFramesInFlight);
+
+    for (int i = 0; i < MaxFramesInFlight; i++)
+    {
+        create_Buffer(device, physicalDevice, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, UniformBuffers[i], UniformBuffersMemory[i]);
+
+        vkMapMemory(device, UniformBuffersMemory[i], 0, bufferSize, 0, &UniformBuffersMapped[i]);
     }
 }
 

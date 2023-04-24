@@ -34,6 +34,8 @@ public:
 	void create_CommandBuffer(VkDevice device);
 	void create_SyncObjects(VkDevice device);
 
+	int get_MaxFramesInFlight() const;
+
 	/*Public Variables*/
 	VkFormat SwapChainImageFormat;
 	bool FramebufferRezised = false;
@@ -42,6 +44,7 @@ private:
 	/*Private Methods*/
 	void recreate_SwapChain(VkDevice device, VkPhysicalDevice physicalDevice);
 	void record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+	void update_UniformBuffer(uint32_t currentImage);
 
 	static VkSurfaceFormatKHR choose_SwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableSurfaceFormats);
 	static VkPresentModeKHR choose_SwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
