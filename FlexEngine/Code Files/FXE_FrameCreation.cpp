@@ -1,6 +1,7 @@
 #include "FXE_FrameCreation.h"
 
 #define GLM_FORCE_RADIANS
+//#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -344,7 +345,7 @@ void FXEFrameCreation::record_CommandBuffer(VkCommandBuffer commandBuffer, uint3
     renderPassBeginInfo.renderPass = TheGraphicPipelinePtr->RenderPass;
     renderPassBeginInfo.framebuffer = SwapChainFramebuffers[imageIndex];
     renderPassBeginInfo.renderArea.offset = { 0, 0 };
-    renderPassBeginInfo.renderArea.extent = { SwapChainExtent };
+    renderPassBeginInfo.renderArea.extent = SwapChainExtent;
 
     VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
     renderPassBeginInfo.clearValueCount = 1;
