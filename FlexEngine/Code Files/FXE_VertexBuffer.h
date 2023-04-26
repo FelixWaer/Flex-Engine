@@ -19,16 +19,20 @@ public:
 	void create_VertexCommandPool(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
 	void create_DescriptorSetLayout(VkDevice device);
 	void create_UniformBuffers(VkDevice device, VkPhysicalDevice physicalDevice);
+	void create_DescriptorPool(VkDevice device);
+	void create_DescriptorSets(VkDevice device);
 
 	VkBuffer VertexBuffer;
 	VkDeviceMemory VertexBufferMemory;
 	VkBuffer IndexBuffer;
 	VkDeviceMemory IndexBufferMemory;
 	VkDescriptorSetLayout DescriptorSetLayout;
+	VkDescriptorPool DescriptorPool;
 
 	std::vector<VkBuffer> UniformBuffers;
 	std::vector<VkDeviceMemory> UniformBuffersMemory;
 	std::vector<void*> UniformBuffersMapped;
+	std::vector<VkDescriptorSet> DescriptorSets;
 
 private:
 	static void create_Buffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
@@ -36,6 +40,7 @@ private:
 	static uint32_t find_MemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 	VkCommandPool VertexCommandPool;
+
 	int MaxFramesInFlight;
 };
 

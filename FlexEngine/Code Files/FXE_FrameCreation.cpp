@@ -79,9 +79,8 @@ void FXEFrameCreation::draw_Frame(VkDevice device, VkPhysicalDevice physicalDevi
         throw std::runtime_error("failed to acquire swap chain image!");
     }
 
-    vkResetFences(device, 1, &InFlightFences[CurrentFrame]);
-
     update_UniformBuffer(CurrentFrame);
+    vkResetFences(device, 1, &InFlightFences[CurrentFrame]);
     vkResetCommandBuffer(CommandBuffers[CurrentFrame], 0);
     record_CommandBuffer(CommandBuffers[CurrentFrame], imageIndex);
 
@@ -373,7 +372,8 @@ void FXEFrameCreation::record_CommandBuffer(VkCommandBuffer commandBuffer, uint3
 
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(commandBuffer, TheVertexBufferPtr->IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
-
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, TheGraphicPipelinePtr->PipelineLayout, 0, 1, 
+        &TheVertexBufferPtr->DescriptorSets[CurrentFrame], 0, nullptr);
     vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(FXE::Indices.size()), 1, 0, 0, 0);
 
     vkCmdEndRenderPass(commandBuffer);
@@ -396,7 +396,7 @@ void FXEFrameCreation::update_UniformBuffer(uint32_t currentImage)
     FXE::UniformBufferObject ubo{};
     ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(SwapChainExtent.width) / static_cast<float>(SwapChainExtent.height), 0.1f, 10.0f);
+    ubo.proj = glm::perspective(glm::radians(45.0f), SwapChainExtent.width / (float)SwapChainExtent.height, 0.1f, 10.0f);
     ubo.proj[1][1] *= -1;
 
     memcpy(TheVertexBufferPtr->UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));

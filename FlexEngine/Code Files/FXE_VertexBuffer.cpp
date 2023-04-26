@@ -20,6 +20,8 @@ void FXEVertexBuffer::init_VertexBuffer(VkDevice device, VkPhysicalDevice physic
     create_VertexBuffer(device, physicalDevice, graphicsQueue);
     create_IndexBuffer(device, physicalDevice, graphicsQueue);
     create_UniformBuffers(device, physicalDevice);
+    create_DescriptorPool(device);
+    create_DescriptorSets(device);
 }
 
 void FXEVertexBuffer::cleanup(VkDevice device)
@@ -29,6 +31,7 @@ void FXEVertexBuffer::cleanup(VkDevice device)
     vkDestroyBuffer(device, VertexBuffer, nullptr);
     vkFreeMemory(device, VertexBufferMemory, nullptr);
     vkDestroyCommandPool(device, VertexCommandPool, nullptr);
+    vkDestroyDescriptorPool(device, DescriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(device, DescriptorSetLayout, nullptr);
     for (int i = 0; i < MaxFramesInFlight; i++)
     {
@@ -134,6 +137,61 @@ void FXEVertexBuffer::create_UniformBuffers(VkDevice device, VkPhysicalDevice ph
         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, UniformBuffers[i], UniformBuffersMemory[i]);
 
         vkMapMemory(device, UniformBuffersMemory[i], 0, bufferSize, 0, &UniformBuffersMapped[i]);
+    }
+}
+
+void FXEVertexBuffer::create_DescriptorPool(VkDevice device)
+{
+    VkDescriptorPoolSize poolSize{};
+    poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSize.descriptorCount = static_cast<uint32_t>(MaxFramesInFlight);
+
+    VkDescriptorPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.poolSizeCount = 1;
+    poolInfo.pPoolSizes = &poolSize;
+    poolInfo.maxSets = static_cast<uint32_t>(MaxFramesInFlight);
+
+    if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &DescriptorPool) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to create descriptor pool!");
+    }
+}
+
+void FXEVertexBuffer::create_DescriptorSets(VkDevice device)
+{
+    std::vector<VkDescriptorSetLayout> layouts(MaxFramesInFlight, DescriptorSetLayout);
+    VkDescriptorSetAllocateInfo allocDescriptorInfo{};
+    allocDescriptorInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocDescriptorInfo.descriptorPool = DescriptorPool;
+    allocDescriptorInfo.descriptorSetCount = static_cast<uint32_t>(MaxFramesInFlight);
+    allocDescriptorInfo.pSetLayouts = layouts.data();
+
+    DescriptorSets.resize(MaxFramesInFlight);
+    if (vkAllocateDescriptorSets(device, &allocDescriptorInfo, DescriptorSets.data()) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to allocate descriptor sets!");
+    }
+
+    for (int i = 0; i < MaxFramesInFlight; i++)
+    {
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = UniformBuffers[i];
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof(FXE::UniformBufferObject);
+
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = DescriptorSets[i];
+        descriptorWrite.dstBinding = 0;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pBufferInfo = &bufferInfo;
+        descriptorWrite.pImageInfo = nullptr;
+        descriptorWrite.pTexelBufferView = nullptr;
+
+        vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
     }
 }
 

@@ -68,9 +68,9 @@ namespace FXE
 
     struct UniformBufferObject
     {
-        glm::mat4 model;
-        glm::mat4 view;
-        glm::mat4 proj;
+       glm::mat4 model;
+       glm::mat4 view;
+       glm::mat4 proj;
     };
 
 	/*---------------------------------*/
@@ -78,15 +78,14 @@ namespace FXE
 	/*---------------------------------*/
 
     const std::vector<Vertex> vertices = {
-	{{-0.5f, -0.3f}, {1.0f, 0.0f, 0.0f}},
-    {{0.5f, -0.3f}, {1.0f, 0.0f, 0.0f}},
-    {{0.5f, 0.7f}, {0.0f, 1.0f, 0.0f}},
-    {{-0.5f, 0.7f}, {0.0f, 1.0f, 0.0f}},
-	{{0.0f, -0.8f}, {0.0f, 0.0f, 1.0f}}
+        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
     };
 
     const std::vector<uint16_t> Indices = {
-    	0, 1, 2, 2, 3, 0, 0, 4, 1
+        0, 1, 2, 2, 3, 0
     };
 
     /*---------------------------------*/

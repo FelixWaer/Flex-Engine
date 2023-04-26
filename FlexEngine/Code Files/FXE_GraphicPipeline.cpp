@@ -16,7 +16,7 @@ const bool debugMode = true;
 /*-------------Methods-------------*/
 /*---------------------------------*/
 
-void FXEGraphicPipeline::init_GraphicsPipeline(VkDevice device, VkFormat swapChainImageFormat, VkDescriptorSetLayout descriptorSetLayout)
+void FXEGraphicPipeline::init_GraphicsPipeline(VkDevice device, VkFormat swapChainImageFormat, VkDescriptorSetLayout& descriptorSetLayout)
 {
     create_RenderPass(device, swapChainImageFormat);
     create_GraphicsPipeline(device, descriptorSetLayout);
@@ -32,7 +32,7 @@ void FXEGraphicPipeline::cleanup(VkDevice device)
 
 //fill more info
 //creating the graphics pipeline
-void FXEGraphicPipeline::create_GraphicsPipeline(VkDevice device, VkDescriptorSetLayout descriptorSetLayout)
+void FXEGraphicPipeline::create_GraphicsPipeline(VkDevice device, VkDescriptorSetLayout& descriptorSetLayout)
 {
     auto vertShaderCode = readFile("Code Files/Shader/vert.spv");
     auto fragShaderCode = readFile("Code Files/Shader/frag.spv");
@@ -82,7 +82,7 @@ void FXEGraphicPipeline::create_GraphicsPipeline(VkDevice device, VkDescriptorSe
     rasterizerInfo.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizerInfo.lineWidth = 1.0f;
     rasterizerInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizerInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    rasterizerInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizerInfo.depthBiasEnable = VK_FALSE;
     rasterizerInfo.depthBiasConstantFactor = 0.0f;
     rasterizerInfo.depthBiasClamp = 0.0f;
