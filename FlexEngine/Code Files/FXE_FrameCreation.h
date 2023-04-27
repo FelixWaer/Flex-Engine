@@ -73,6 +73,6 @@ private:
 	std::vector<VkFence> InFlightFences;
 
 	int CurrentFrame = 0;
-	const int MaxFramesInFlight = 2;
+	const uint32_t MaxFramesInFlight = 2;
 };
 

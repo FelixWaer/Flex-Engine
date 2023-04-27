@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <vector>
-#include <array>
 
 #include <glm/glm.hpp>
 
@@ -107,10 +106,10 @@ void FXEVertexBuffer::create_DescriptorSetLayout(VkDevice device)
 {
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
     uboLayoutBinding.binding = 0;
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.pImmutableSamplers = nullptr;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -175,6 +174,7 @@ void FXEVertexBuffer::create_DescriptorSets(VkDevice device)
 
     for (int i = 0; i < MaxFramesInFlight; i++)
     {
+        std::cout << "no" << std::endl;
         VkDescriptorBufferInfo bufferInfo{};
         bufferInfo.buffer = UniformBuffers[i];
         bufferInfo.offset = 0;

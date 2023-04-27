@@ -41,6 +41,6 @@ private:
 
 	VkCommandPool VertexCommandPool;
 
-	int MaxFramesInFlight;
+	uint32_t MaxFramesInFlight;
 };
 

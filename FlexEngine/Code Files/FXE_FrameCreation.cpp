@@ -383,8 +383,6 @@ void FXEFrameCreation::record_CommandBuffer(VkCommandBuffer commandBuffer, uint3
     {
         throw std::runtime_error("failed to record command buffer!");
     }
-
-
 }
 
 void FXEFrameCreation::update_UniformBuffer(uint32_t currentImage)
