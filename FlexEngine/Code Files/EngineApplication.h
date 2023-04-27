@@ -7,26 +7,25 @@
 #include <GLFW/glfw3native.h>
 
 #include <vector>
-#include <string>
 
-struct QueueFamilyIndices;
-struct SwapChainSupportDetails;
+#include "FXE_Window.h"
+#include "FXE_GraphicPipeline.h"
+#include "FXE_DebugMessenger.h"
+#include "FXE_FrameCreation.h"
+#include "FXE_VertexBuffer.h"
 
 class FlexEngine {
 public:
     void run() {
-        initWindow();
+        TheWindow.initWindow(static_cast<int>(WIDTH), static_cast<int>(HEIGHT), "FlexEngine", this, framebufferResizeCallback);
         initVulkan();
         mainLoop();
         cleanup();
     }
 
 private:
-
     //Main Methods
-    void initWindow();
-
-    void initVulkan();
+	void initVulkan();
 
     void mainLoop();
 
@@ -35,91 +34,32 @@ private:
     //Method
     void createInstance();
     void pickPhysicalDevice();
-    bool isDeviceSuitable(VkPhysicalDevice device);
+    bool isDeviceSuitable(VkPhysicalDevice physicalDevice);
     static bool checkValidationLayerSupport();
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     void createLogicalDevice();
-    void createSurface();
-    void createImageViews();
-    void createRenderPass();
-    void createFramebuffers();
-    void createCommandPool();
-    void createCommandBuffers();
-    void recordCommandBuffer(VkCommandBuffer theCommandBuffer, uint32_t imageIndex);
-    void drawFrame();
-    void createSyncObjects();
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
-    void createVertexBuffer();
+
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-
-    //Swap Chain Methods
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
-    static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-    static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-    void createSwapChain();
-    void recreateSwapChain();
-    void cleanupSwapChain();
-
-    //Graphic Pipeline Methods
-    void createGraphicsPipeline();
-    static std::vector<char> readFile(const std::string& fileName);
-    VkShaderModule createShaderModule(const std::vector<char>& code);
 
     //Extension Support Methods
     static std::vector<const char*> getRequiredExtensions();
     static void checkForExtensionsSupport();
     static bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 
-    //Debug Methods
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        VkDebugUtilsMessageTypeFlagsEXT messageType,
-        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-        void* pUserData);
-    void setupDebugMessenger();
-    static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-    VkResult CreateDebugUtilsMessengerEXT(
-        VkInstance theInstance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-        const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
-    void destroyDebugUtilsMessengerEXT
-    (VkInstance theInstance, VkDebugUtilsMessengerEXT theDebugMessenger,
-        const VkAllocationCallbacks* pAllocator);
-
 
     //Variables
-    GLFWwindow* window;
-    VkInstance instance;
-    VkDebugUtilsMessengerEXT debugMessenger;
-    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    VkDevice device;
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
-    VkSurfaceKHR surface;
-    VkRenderPass renderPass;
-    VkPipelineLayout pipelineLayout;
-    VkPipeline graphicsPipeline;
-    std::vector<VkFramebuffer> swapChainFramebuffers;
-    VkCommandPool commandPool;
-    std::vector<VkCommandBuffer> commandBuffers;
-    std::vector<VkSemaphore> imageAvailableSemaphores;
-    std::vector<VkSemaphore> renderFinishedSemaphores;
-    std::vector<VkFence> inFlightFences;
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
+    FXEWindow TheWindow;
+    FXEGraphicPipeline TheGraphicPipeline;
+    FXEDebugMessenger TheDebugMessenger;
+    FXEFrameCreation TheFrameCreation;
+    FXEVertexBuffer TheVertexBuffer;
 
-    //Swap Chain Variables
-    VkSwapchainKHR swapChain;
-    std::vector<VkImage> swapChainImages;
-    VkFormat swapChainImageFormat;
-    VkExtent2D swapChainExtent;
-    std::vector<VkImageView> swapChainImageViews;
-
+    VkInstance Instance;
+    VkPhysicalDevice PhysicalDevice = VK_NULL_HANDLE;
+    VkDevice Device;
+    VkQueue GraphicsQueue;
+    VkQueue PresentQueue;
 
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
-    const int maxFramesInFlight = 2;
-    uint32_t currentFrame = 0;
-    bool framebufferRezised = false;
-
 };
