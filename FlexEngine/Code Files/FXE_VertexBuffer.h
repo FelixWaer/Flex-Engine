@@ -11,7 +11,7 @@
 class FXEVertexBuffer
 {
 public:
-	void init_VertexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQueue graphicsQueue, int maxFramesInFlight);
+	void init_VertexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQueue graphicsQueue, uint32_t maxFramesInFlight);
 	void cleanup(VkDevice device);
 
 	void create_VertexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkQueue graphicsQueue);
@@ -40,7 +40,6 @@ private:
 	static uint32_t find_MemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 	VkCommandPool VertexCommandPool;
-
 	uint32_t MaxFramesInFlight;
 };
 

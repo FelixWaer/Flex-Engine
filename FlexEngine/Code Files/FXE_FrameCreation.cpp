@@ -34,14 +34,14 @@ void FXEFrameCreation::init_FrameCreation(FXEWindow* theWindow, FXEGraphicPipeli
 //cleaning up the swap chain at the end of the program
 void FXEFrameCreation::cleanup_SwapChain(VkDevice device)
 {
-    for (size_t i = 0; i < SwapChainFramebuffers.size(); i++)
+    for (VkFramebuffer FrameBuffer : SwapChainFramebuffers)
     {
-        vkDestroyFramebuffer(device, SwapChainFramebuffers[i], nullptr);
+        vkDestroyFramebuffer(device, FrameBuffer, nullptr);
     }
 
-    for (size_t i = 0; i < SwapChainImageViews.size(); i++)
+    for (VkImageView ImageView : SwapChainImageViews)
     {
-        vkDestroyImageView(device, SwapChainImageViews[i], nullptr);
+        vkDestroyImageView(device, ImageView, nullptr);
     }
 
     vkDestroySwapchainKHR(device, SwapChain, nullptr);
@@ -50,7 +50,7 @@ void FXEFrameCreation::cleanup_SwapChain(VkDevice device)
 //cleaning up the semaphores at the end of the program
 void FXEFrameCreation::cleanup_Semaphores(VkDevice device)
 {
-    for (size_t i = 0; i < MaxFramesInFlight; i++)
+    for (uint32_t i = 0; i < MaxFramesInFlight; i++)
     {
         vkDestroySemaphore(device, ImageAvailableSemaphores[i], nullptr);
         vkDestroySemaphore(device, RenderFinishedSemaphores[i], nullptr);
@@ -274,7 +274,7 @@ void FXEFrameCreation::create_CommandBuffer(VkDevice device)
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.commandPool = CommandPool;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = (uint32_t)CommandBuffers.size();
+    allocInfo.commandBufferCount = static_cast<uint32_t>(CommandBuffers.size());
 
     if (vkAllocateCommandBuffers(device, &allocInfo, CommandBuffers.data()) != VK_SUCCESS)
     {
@@ -295,7 +295,7 @@ void FXEFrameCreation::create_SyncObjects(VkDevice device)
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    for (size_t i = 0; i < MaxFramesInFlight; i++)
+    for (uint32_t i = 0; i < MaxFramesInFlight; i++)
     {
         if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &ImageAvailableSemaphores[i]) != VK_SUCCESS ||
             vkCreateSemaphore(device, &semaphoreInfo, nullptr, &RenderFinishedSemaphores[i]) != VK_SUCCESS ||
@@ -306,7 +306,7 @@ void FXEFrameCreation::create_SyncObjects(VkDevice device)
     }
 }
 
-int FXEFrameCreation::get_MaxFramesInFlight() const
+uint32_t FXEFrameCreation::get_MaxFramesInFlight() const
 {
     return MaxFramesInFlight;
 }
@@ -395,7 +395,7 @@ void FXEFrameCreation::update_UniformBuffer(uint32_t currentImage)
     FXE::UniformBufferObject ubo{};
     ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.proj = glm::perspective(glm::radians(45.0f), SwapChainExtent.width / (float)SwapChainExtent.height, 0.1f, 10.0f);
+    ubo.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(SwapChainExtent.width) / static_cast<float>(SwapChainExtent.height), 0.1f, 10.0f);
     ubo.proj[1][1] *= -1;
 
     memcpy(TheVertexBufferPtr->UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
@@ -435,19 +435,18 @@ VkExtent2D FXEFrameCreation::choose_SwapExtent(const VkSurfaceCapabilitiesKHR& c
     {
         return capabilities.currentExtent;
     }
-    else
-    {
-        int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
+  
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
 
-        VkExtent2D actualExtent = {
-            static_cast<uint32_t>(width),
-            static_cast<uint32_t>(height)
-        };
+    VkExtent2D actualExtent = {
+    	static_cast<uint32_t>(width),
+    	static_cast<uint32_t>(height)
+    };
 
-        actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-        actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+    actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+    actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
-        return actualExtent;
-    }
+    return actualExtent;
+
 }

@@ -8,7 +8,9 @@
 #include <optional>
 #include <array>
 
+#define GLM_FORCE_DEFAULT_ALIGNED_GENETYPES
 #include <glm/glm.hpp>
+
 
 namespace FXE
 {

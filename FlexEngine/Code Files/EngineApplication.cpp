@@ -275,7 +275,7 @@ bool FlexEngine::checkValidationLayerSupport()
 
 void FlexEngine::framebufferResizeCallback(GLFWwindow* window, int width, int height)
 {
-    auto app = reinterpret_cast<FlexEngine*>(glfwGetWindowUserPointer(window));
+    auto app = static_cast<FlexEngine*>(glfwGetWindowUserPointer(window));
     app->TheFrameCreation.FramebufferRezised = true;
 }
 

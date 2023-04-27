@@ -11,7 +11,7 @@
 /*---------Public Methods----------*/
 /*---------------------------------*/
 
-void FXEVertexBuffer::init_VertexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQueue graphicsQueue, int maxFramesInFlight)
+void FXEVertexBuffer::init_VertexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQueue graphicsQueue, uint32_t maxFramesInFlight)
 {
     MaxFramesInFlight = maxFramesInFlight;
 
@@ -32,7 +32,7 @@ void FXEVertexBuffer::cleanup(VkDevice device)
     vkDestroyCommandPool(device, VertexCommandPool, nullptr);
     vkDestroyDescriptorPool(device, DescriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(device, DescriptorSetLayout, nullptr);
-    for (int i = 0; i < MaxFramesInFlight; i++)
+    for (uint32_t i = 0; i < MaxFramesInFlight; i++)
     {
         vkDestroyBuffer(device, UniformBuffers[i], nullptr);
         vkFreeMemory(device, UniformBuffersMemory[i], nullptr);
@@ -130,7 +130,7 @@ void FXEVertexBuffer::create_UniformBuffers(VkDevice device, VkPhysicalDevice ph
     UniformBuffersMemory.resize(MaxFramesInFlight);
     UniformBuffersMapped.resize(MaxFramesInFlight);
 
-    for (int i = 0; i < MaxFramesInFlight; i++)
+    for (uint32_t i = 0; i < MaxFramesInFlight; i++)
     {
         create_Buffer(device, physicalDevice, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, UniformBuffers[i], UniformBuffersMemory[i]);
@@ -143,13 +143,13 @@ void FXEVertexBuffer::create_DescriptorPool(VkDevice device)
 {
     VkDescriptorPoolSize poolSize{};
     poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSize.descriptorCount = static_cast<uint32_t>(MaxFramesInFlight);
+    poolSize.descriptorCount = MaxFramesInFlight;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = 1;
     poolInfo.pPoolSizes = &poolSize;
-    poolInfo.maxSets = static_cast<uint32_t>(MaxFramesInFlight);
+    poolInfo.maxSets = MaxFramesInFlight;
 
     if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &DescriptorPool) != VK_SUCCESS)
     {
@@ -163,7 +163,7 @@ void FXEVertexBuffer::create_DescriptorSets(VkDevice device)
     VkDescriptorSetAllocateInfo allocDescriptorInfo{};
     allocDescriptorInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocDescriptorInfo.descriptorPool = DescriptorPool;
-    allocDescriptorInfo.descriptorSetCount = static_cast<uint32_t>(MaxFramesInFlight);
+    allocDescriptorInfo.descriptorSetCount = MaxFramesInFlight;
     allocDescriptorInfo.pSetLayouts = layouts.data();
 
     DescriptorSets.resize(MaxFramesInFlight);
@@ -172,9 +172,8 @@ void FXEVertexBuffer::create_DescriptorSets(VkDevice device)
         throw std::runtime_error("Failed to allocate descriptor sets!");
     }
 
-    for (int i = 0; i < MaxFramesInFlight; i++)
+    for (uint32_t i = 0; i < MaxFramesInFlight; i++)
     {
-        std::cout << "no" << std::endl;
         VkDescriptorBufferInfo bufferInfo{};
         bufferInfo.buffer = UniformBuffers[i];
         bufferInfo.offset = 0;

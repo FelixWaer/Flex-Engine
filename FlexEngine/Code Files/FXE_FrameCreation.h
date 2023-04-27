@@ -34,7 +34,7 @@ public:
 	void create_CommandBuffer(VkDevice device);
 	void create_SyncObjects(VkDevice device);
 
-	int get_MaxFramesInFlight() const;
+	uint32_t get_MaxFramesInFlight() const;
 
 	/*Public Variables*/
 	VkFormat SwapChainImageFormat;
@@ -72,7 +72,7 @@ private:
 	std::vector<VkSemaphore> RenderFinishedSemaphores;
 	std::vector<VkFence> InFlightFences;
 
-	int CurrentFrame = 0;
+	uint32_t CurrentFrame = 0;
 	const uint32_t MaxFramesInFlight = 2;
 };
 
