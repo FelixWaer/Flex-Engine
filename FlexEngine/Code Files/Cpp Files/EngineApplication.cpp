@@ -1,4 +1,4 @@
-#include "EngineApplication.h"
+#include "../EngineApplication.h"
 
 #include <iostream>
 #include <cstring>
@@ -14,7 +14,7 @@
 
 #include <glm/glm.hpp>
 
-#include "ExtraFunctions.h"
+#include "../FXE_ExtraFunctions.h"
 
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
@@ -42,21 +42,29 @@ const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_N
 void FlexEngine::initVulkan()
 {
     TIME(auto start)
-    createInstance();
+
+    create_Instance();
     TheDebugMessenger.setup_DebugMessenger(Instance);
     TheWindow.createSurface(Instance);
-    pickPhysicalDevice();
-    createLogicalDevice();
-    TheFrameCreation.init_FrameCreation(&TheWindow, &TheGraphicPipeline, &TheVertexBuffer);
-    TheFrameCreation.create_SwapChain(PhysicalDevice, Device);
-    TheFrameCreation.create_ImageViews(Device);
+    pick_PhysicalDevice();
+    create_LogicalDevice();
+    TheFrameCreation.init_FrameCreation(Device, PhysicalDevice, &TheWindow, &TheGraphicPipeline, &TheVertexBuffer, &TheTextureImage);
+    TheFrameCreation.create_SwapChain();
+    TheFrameCreation.create_ImageViews();
     TheVertexBuffer.create_DescriptorSetLayout(Device);
-    TheGraphicPipeline.init_GraphicsPipeline(Device, TheFrameCreation.SwapChainImageFormat, TheVertexBuffer.DescriptorSetLayout);
-    TheFrameCreation.create_FrameBuffer(Device);
-    TheFrameCreation.create_CommandPool(Device, PhysicalDevice);
-    TheVertexBuffer.init_VertexBuffer(Device, PhysicalDevice, TheWindow.Surface, GraphicsQueue, TheFrameCreation.get_MaxFramesInFlight());
-    TheFrameCreation.create_CommandBuffer(Device);
-    TheFrameCreation.create_SyncObjects(Device);
+    TheGraphicPipeline.init_GraphicsPipeline(Device, PhysicalDevice, TheFrameCreation.SwapChainImageFormat, TheVertexBuffer.DescriptorSetLayout);
+    TheFrameCreation.create_CommandPool();
+    TheTextureImage.init_TextureImage(Device, PhysicalDevice, GraphicsQueue, &TheFrameCreation, &TheVertexBuffer);
+    TheFrameCreation.create_DepthResources(GraphicsQueue);
+    TheFrameCreation.create_FrameBuffer();
+    TheTextureImage.create_TextureImage(GraphicsQueue, Texture_Path);
+    TheTextureImage.create_TextureImageView();
+    TheTextureImage.create_TextureSampler();
+    TheVertexBuffer.init_VertexBuffer(Device, PhysicalDevice, TheWindow.Surface, GraphicsQueue, TheFrameCreation.get_MaxFramesInFlight(), Model_Path,
+        &TheFrameCreation, &TheTextureImage);
+    TheFrameCreation.create_CommandBuffer();
+    TheFrameCreation.create_SyncObjects();
+
     TIME(auto end)
 	PRINT_TIME_MS("time to initialize Vulkan: ", start, end)
 }
@@ -67,18 +75,20 @@ void FlexEngine::mainLoop()
 	while (!TheWindow.windowClosing())
 	{
 		glfwPollEvents();
-        TheFrameCreation.draw_Frame(Device, PhysicalDevice, PresentQueue, GraphicsQueue);
+        TheFrameCreation.draw_Frame(PresentQueue, GraphicsQueue);
 	}
     vkDeviceWaitIdle(Device);
 }
 
 void FlexEngine::cleanup()
 {
-    TheFrameCreation.cleanup_SwapChain(Device);
+    TheFrameCreation.cleanup_SwapChain();
 
+    TheTextureImage.cleanup();
     TheVertexBuffer.cleanup(Device);
     TheGraphicPipeline.cleanup(Device);
-    TheFrameCreation.cleanup_Semaphores(Device);
+    TheFrameCreation.cleanup_Semaphores();
+    TheFrameCreation.cleanup_DepthImages();
 
     vkDestroyDevice(Device, nullptr);
 
@@ -96,9 +106,9 @@ void FlexEngine::cleanup()
 /*---------------------------------*/
 /*-------------Methods-------------*/
 /*---------------------------------*/
-void FlexEngine::createInstance()
+void FlexEngine::create_Instance()
 {
-	if (enableValidationLayers && !checkValidationLayerSupport())
+	if (enableValidationLayers && !check_ValidationLayerSupport())
 	{
         throw std::runtime_error("validation layers requested, but not available!");
 	}
@@ -115,7 +125,7 @@ void FlexEngine::createInstance()
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
-    auto extensions = getRequiredExtensions();
+    auto extensions = get_RequiredExtensions();
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
 
@@ -144,7 +154,7 @@ void FlexEngine::createInstance()
 }
 
 //Picks what GPU to use
-void FlexEngine::pickPhysicalDevice()
+void FlexEngine::pick_PhysicalDevice()
 {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(Instance, &deviceCount, nullptr);
@@ -179,7 +189,7 @@ bool FlexEngine::isDeviceSuitable(VkPhysicalDevice physicalDevice)
     FXE::QueueFamilyIndices indices = FXE::find_QueueFamilies(physicalDevice, TheWindow.Surface);
 
     //checks if GPU supports swap chain and swap chain support drawing on our surface
-    bool extensionsSupported = checkDeviceExtensionSupport(physicalDevice);
+    bool extensionsSupported = check_DeviceExtensionSupport(physicalDevice);
 
     bool swapChainAdequate = false;
 	if (extensionsSupported)
@@ -188,10 +198,14 @@ bool FlexEngine::isDeviceSuitable(VkPhysicalDevice physicalDevice)
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
 	}
 
-    return indices.isComplete() && extensionsSupported && swapChainAdequate;
+    VkPhysicalDeviceFeatures supportedFeatures;
+    vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
+
+
+    return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
 
-void FlexEngine::createLogicalDevice()
+void FlexEngine::create_LogicalDevice()
 {
     FXE::QueueFamilyIndices indices = FXE::find_QueueFamilies(PhysicalDevice, TheWindow.Surface);
 
@@ -210,6 +224,7 @@ void FlexEngine::createLogicalDevice()
     }
 
     VkPhysicalDeviceFeatures deviceFeatures{};
+    deviceFeatures.samplerAnisotropy = VK_TRUE;
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -239,11 +254,11 @@ void FlexEngine::createLogicalDevice()
 
     if (debugMode)
     {
-        checkForExtensionsSupport();
+        check_ForExtensionsSupport();
     }
 }
 
-bool FlexEngine::checkValidationLayerSupport()
+bool FlexEngine::check_ValidationLayerSupport()
 {
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -284,7 +299,7 @@ void FlexEngine::framebufferResizeCallback(GLFWwindow* window, int width, int he
 /*---------------------------------*/
 
 //gets the required extensions needed
-std::vector<const char*> FlexEngine::getRequiredExtensions()
+std::vector<const char*> FlexEngine::get_RequiredExtensions()
 {
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions;
@@ -300,7 +315,7 @@ std::vector<const char*> FlexEngine::getRequiredExtensions()
     return extensions;
 }
 
-void FlexEngine::checkForExtensionsSupport()
+void FlexEngine::check_ForExtensionsSupport()
 {
     uint32_t extensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
@@ -316,7 +331,7 @@ void FlexEngine::checkForExtensionsSupport()
 
 
 //Checks if the GPU supports Swap Chain to draw on the screen
-bool FlexEngine::checkDeviceExtensionSupport(VkPhysicalDevice device)
+bool FlexEngine::check_DeviceExtensionSupport(VkPhysicalDevice device)
 {
     uint32_t extensionCount = 0;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);

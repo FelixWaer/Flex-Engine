@@ -1,7 +1,7 @@
-#include "FXE_FrameCreation.h"
+#include "../FXE_FrameCreation.h"
 
 #define GLM_FORCE_RADIANS
-//#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -10,10 +10,11 @@
 #include <optional>
 #include <chrono>
 
-#include "FXE_Window.h"
-#include "FXE_GraphicPipeline.h"
-#include "FXE_VertexBuffer.h"
-#include "ExtraFunctions.h"
+#include "../FXE_Window.h"
+#include "../FXE_GraphicPipeline.h"
+#include "../FXE_VertexBuffer.h"
+#include "../FXE_TextureImage.h"
+#include "../FXE_ExtraFunctions.h"
 
 #define TIME(x) x = std::chrono::high_resolution_clock::now();
 #define PRINT_TIME_NS(text, start, end) std::cout << text << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
@@ -24,53 +25,64 @@
 /*---------------------------------*/
 
 //initializing the pointers pointing to the window and graphics class
-void FXEFrameCreation::init_FrameCreation(FXEWindow* theWindow, FXEGraphicPipeline* theGraphicPipeline, FXEVertexBuffer* theVertexBuffer)
+void FXEFrameCreation::init_FrameCreation(VkDevice device, VkPhysicalDevice physicalDevice, FXEWindow* theWindow, FXEGraphicPipeline* theGraphicPipeline, FXEVertexBuffer* theVertexBuffer, FXETextureImage* theTextureImage)
 {
+    Device = device;
+    PhysicalDevice = physicalDevice;
+
     TheWindowPtr = theWindow;
     TheGraphicPipelinePtr = theGraphicPipeline;
     TheVertexBufferPtr = theVertexBuffer;
+    TheTextureImagePtr = theTextureImage;
 }
 
 //cleaning up the swap chain at the end of the program
-void FXEFrameCreation::cleanup_SwapChain(VkDevice device)
+void FXEFrameCreation::cleanup_SwapChain()
 {
     for (VkFramebuffer FrameBuffer : SwapChainFramebuffers)
     {
-        vkDestroyFramebuffer(device, FrameBuffer, nullptr);
+        vkDestroyFramebuffer(Device, FrameBuffer, nullptr);
     }
 
     for (VkImageView ImageView : SwapChainImageViews)
     {
-        vkDestroyImageView(device, ImageView, nullptr);
+        vkDestroyImageView(Device, ImageView, nullptr);
     }
 
-    vkDestroySwapchainKHR(device, SwapChain, nullptr);
+    vkDestroySwapchainKHR(Device, SwapChain, nullptr);
 }
 
 //cleaning up the semaphores at the end of the program
-void FXEFrameCreation::cleanup_Semaphores(VkDevice device)
+void FXEFrameCreation::cleanup_Semaphores()
 {
     for (uint32_t i = 0; i < MaxFramesInFlight; i++)
     {
-        vkDestroySemaphore(device, ImageAvailableSemaphores[i], nullptr);
-        vkDestroySemaphore(device, RenderFinishedSemaphores[i], nullptr);
-        vkDestroyFence(device, InFlightFences[i], nullptr);
+        vkDestroySemaphore(Device, ImageAvailableSemaphores[i], nullptr);
+        vkDestroySemaphore(Device, RenderFinishedSemaphores[i], nullptr);
+        vkDestroyFence(Device, InFlightFences[i], nullptr);
     }
 
-    vkDestroyCommandPool(device, CommandPool, nullptr);
+    vkDestroyCommandPool(Device, CommandPool, nullptr);
+}
+
+void FXEFrameCreation::cleanup_DepthImages()
+{
+    vkDestroyImageView(Device, DepthImageView, nullptr);
+    vkDestroyImage(Device, DepthImage, nullptr);
+    vkFreeMemory(Device, DepthImageMemory, nullptr);
 }
 
 //Method that draws the frame on the screen
-void FXEFrameCreation::draw_Frame(VkDevice device, VkPhysicalDevice physicalDevice, VkQueue presentQueue, VkQueue graphicsQueue)
+void FXEFrameCreation::draw_Frame(VkQueue presentQueue, VkQueue graphicsQueue)
 {
-    vkWaitForFences(device, 1, &InFlightFences[CurrentFrame], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(Device, 1, &InFlightFences[CurrentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(device, SwapChain, UINT64_MAX, ImageAvailableSemaphores[CurrentFrame], VK_NULL_HANDLE, &imageIndex);
+    VkResult result = vkAcquireNextImageKHR(Device, SwapChain, UINT64_MAX, ImageAvailableSemaphores[CurrentFrame], VK_NULL_HANDLE, &imageIndex);
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
         TIME(auto start)
-            recreate_SwapChain(device, physicalDevice);
+            recreate_SwapChain(graphicsQueue);
         TIME(auto end)
             PRINT_TIME_MS("time to recreate: ", start, end)
             return;
@@ -81,7 +93,7 @@ void FXEFrameCreation::draw_Frame(VkDevice device, VkPhysicalDevice physicalDevi
     }
 
     update_UniformBuffer(CurrentFrame);
-    vkResetFences(device, 1, &InFlightFences[CurrentFrame]);
+    vkResetFences(Device, 1, &InFlightFences[CurrentFrame]);
     vkResetCommandBuffer(CommandBuffers[CurrentFrame], 0);
     record_CommandBuffer(CommandBuffers[CurrentFrame], imageIndex);
 
@@ -121,7 +133,7 @@ void FXEFrameCreation::draw_Frame(VkDevice device, VkPhysicalDevice physicalDevi
         FramebufferRezised = false;
 
         TIME(auto start);
-        recreate_SwapChain(device, physicalDevice);
+        recreate_SwapChain(graphicsQueue);
         TIME(auto end);
         PRINT_TIME_MS("time to recreate: ", start, end)
     }
@@ -138,9 +150,9 @@ void FXEFrameCreation::draw_Frame(VkDevice device, VkPhysicalDevice physicalDevi
 /*---------------------------------*/
 
 //creates a working swap chain with all preferred settings
-void FXEFrameCreation::create_SwapChain(VkPhysicalDevice physicalDevice, VkDevice device)
+void FXEFrameCreation::create_SwapChain()
 {
-    FXE::SwapChainSupportDetails swapChainSupport = FXE::query_SwapChainSupport(physicalDevice, TheWindowPtr->Surface);
+    FXE::SwapChainSupportDetails swapChainSupport = FXE::query_SwapChainSupport(PhysicalDevice, TheWindowPtr->Surface);
 
     VkSurfaceFormatKHR surfaceFormat = choose_SwapSurfaceFormat(swapChainSupport.formats);
     VkPresentModeKHR presentMode = choose_SwapPresentMode(swapChainSupport.presentModes);
@@ -163,7 +175,7 @@ void FXEFrameCreation::create_SwapChain(VkPhysicalDevice physicalDevice, VkDevic
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    FXE::QueueFamilyIndices indices = FXE::find_QueueFamilies(physicalDevice, TheWindowPtr->Surface);
+    FXE::QueueFamilyIndices indices = FXE::find_QueueFamilies(PhysicalDevice, TheWindowPtr->Surface);
     uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
     if (indices.graphicsFamily != indices.presentFamily)
@@ -185,88 +197,84 @@ void FXEFrameCreation::create_SwapChain(VkPhysicalDevice physicalDevice, VkDevic
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &SwapChain) != VK_SUCCESS)
+    if (vkCreateSwapchainKHR(Device, &createInfo, nullptr, &SwapChain) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create swap chain!");
     }
 
-    vkGetSwapchainImagesKHR(device, SwapChain, &imageCount, nullptr);
+    vkGetSwapchainImagesKHR(Device, SwapChain, &imageCount, nullptr);
     SwapChainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(device, SwapChain, &imageCount, SwapChainImages.data());
+    vkGetSwapchainImagesKHR(Device, SwapChain, &imageCount, SwapChainImages.data());
 
     SwapChainImageFormat = surfaceFormat.format;
     SwapChainExtent = extent;
 }
 
-void FXEFrameCreation::create_ImageViews(VkDevice device)
+void FXEFrameCreation::create_ImageViews()
 {
     SwapChainImageViews.resize(SwapChainImages.size());
 
     for (size_t i = 0; i < SwapChainImages.size(); i++)
     {
-        VkImageViewCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image = SwapChainImages[i];
-        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        createInfo.format = SwapChainImageFormat;
-        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        createInfo.subresourceRange.baseMipLevel = 0;
-        createInfo.subresourceRange.levelCount = 1;
-        createInfo.subresourceRange.baseArrayLayer = 0;
-        createInfo.subresourceRange.layerCount = 1;
-
-        if (vkCreateImageView(device, &createInfo, nullptr, &SwapChainImageViews[i]) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create image views!");
-        }
+        SwapChainImageViews[i] = FXE::create_ImageView(Device, SwapChainImages[i], SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
     }
 }
 
-void FXEFrameCreation::create_FrameBuffer(VkDevice device)
+void FXEFrameCreation::create_FrameBuffer()
 {
     SwapChainFramebuffers.resize(SwapChainImageViews.size());
 
     for (size_t i = 0; i < SwapChainImageViews.size(); i++)
     {
-        VkImageView attachments[] = { SwapChainImageViews[i] };
+        std::array<VkImageView, 2> attachments = {
+           SwapChainImageViews[i], DepthImageView
+        };
 
 
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferInfo.renderPass = TheGraphicPipelinePtr->RenderPass;
-        framebufferInfo.attachmentCount = 1;
-        framebufferInfo.pAttachments = attachments;
+        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        framebufferInfo.pAttachments = attachments.data();
         framebufferInfo.width = SwapChainExtent.width;
         framebufferInfo.height = SwapChainExtent.height;
         framebufferInfo.layers = 1;
 
-        if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &SwapChainFramebuffers[i]) != VK_SUCCESS)
+        if (vkCreateFramebuffer(Device, &framebufferInfo, nullptr, &SwapChainFramebuffers[i]) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create framebuffer!");
         }
     }
 }
 
-void FXEFrameCreation::create_CommandPool(VkDevice device, VkPhysicalDevice physcialDevice)
+void FXEFrameCreation::create_CommandPool()
 {
-    FXE::QueueFamilyIndices indices = FXE::find_QueueFamilies(physcialDevice, TheWindowPtr->Surface);
+    FXE::QueueFamilyIndices indices = FXE::find_QueueFamilies(PhysicalDevice, TheWindowPtr->Surface);
 
     VkCommandPoolCreateInfo commandPoolInfo{};
     commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     commandPoolInfo.queueFamilyIndex = indices.graphicsFamily.value();
 
-    if (vkCreateCommandPool(device, &commandPoolInfo, nullptr, &CommandPool) != VK_SUCCESS)
+    if (vkCreateCommandPool(Device, &commandPoolInfo, nullptr, &CommandPool) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create command pool!");
     }
 }
 
-void FXEFrameCreation::create_CommandBuffer(VkDevice device)
+void FXEFrameCreation::create_DepthResources(VkQueue graphicsQueue)
+{
+    VkFormat depthFormat = FXE::find_DepthFormat(PhysicalDevice);
+
+    FXE::create_Image(Device, PhysicalDevice, SwapChainExtent.width, SwapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, DepthImage, DepthImageMemory);
+
+    DepthImageView = FXE::create_ImageView(Device, DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+    TheTextureImagePtr->transition_ImageLayout(graphicsQueue, DepthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+}
+
+void FXEFrameCreation::create_CommandBuffer()
 {
     CommandBuffers.resize(MaxFramesInFlight);
 
@@ -276,13 +284,13 @@ void FXEFrameCreation::create_CommandBuffer(VkDevice device)
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = static_cast<uint32_t>(CommandBuffers.size());
 
-    if (vkAllocateCommandBuffers(device, &allocInfo, CommandBuffers.data()) != VK_SUCCESS)
+    if (vkAllocateCommandBuffers(Device, &allocInfo, CommandBuffers.data()) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to allocate command buffer!");
     }
 }
 
-void FXEFrameCreation::create_SyncObjects(VkDevice device)
+void FXEFrameCreation::create_SyncObjects()
 {
     ImageAvailableSemaphores.resize(MaxFramesInFlight);
     RenderFinishedSemaphores.resize(MaxFramesInFlight);
@@ -297,9 +305,9 @@ void FXEFrameCreation::create_SyncObjects(VkDevice device)
 
     for (uint32_t i = 0; i < MaxFramesInFlight; i++)
     {
-        if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &ImageAvailableSemaphores[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(device, &semaphoreInfo, nullptr, &RenderFinishedSemaphores[i]) != VK_SUCCESS ||
-            vkCreateFence(device, &fenceInfo, nullptr, &InFlightFences[i]) != VK_SUCCESS)
+        if (vkCreateSemaphore(Device, &semaphoreInfo, nullptr, &ImageAvailableSemaphores[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(Device, &semaphoreInfo, nullptr, &RenderFinishedSemaphores[i]) != VK_SUCCESS ||
+            vkCreateFence(Device, &fenceInfo, nullptr, &InFlightFences[i]) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create semaphores!");
         }
@@ -316,16 +324,18 @@ uint32_t FXEFrameCreation::get_MaxFramesInFlight() const
 /*---------------------------------*/
 
 //recreating the swap chain
-void FXEFrameCreation::recreate_SwapChain(VkDevice device, VkPhysicalDevice physicalDevice)
+void FXEFrameCreation::recreate_SwapChain(VkQueue graphicsQueue)
 {
     TheWindowPtr->windowMinimized();
 
-    vkDeviceWaitIdle(device);
+    vkDeviceWaitIdle(Device);
 
-    cleanup_SwapChain(device);
-    create_SwapChain(physicalDevice, device);
-    create_ImageViews(device);
-    create_FrameBuffer(device);
+    cleanup_SwapChain();
+
+    create_SwapChain();
+    create_ImageViews();
+    create_DepthResources(graphicsQueue);
+    create_FrameBuffer();
 }
 
 void FXEFrameCreation::record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
@@ -347,9 +357,12 @@ void FXEFrameCreation::record_CommandBuffer(VkCommandBuffer commandBuffer, uint3
     renderPassBeginInfo.renderArea.offset = { 0, 0 };
     renderPassBeginInfo.renderArea.extent = SwapChainExtent;
 
-    VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
-    renderPassBeginInfo.clearValueCount = 1;
-    renderPassBeginInfo.pClearValues = &clearColor;
+    std::array<VkClearValue, 2> clearValues{};
+    clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+    clearValues[1].depthStencil = { 1.0f, 0 };
+
+    renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassBeginInfo.pClearValues = clearValues.data();
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, TheGraphicPipelinePtr->GraphicsPipeline);
@@ -372,10 +385,10 @@ void FXEFrameCreation::record_CommandBuffer(VkCommandBuffer commandBuffer, uint3
     VkDeviceSize offsets[] = { 0 };
 
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(commandBuffer, TheVertexBufferPtr->IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
+    vkCmdBindIndexBuffer(commandBuffer, TheVertexBufferPtr->IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, TheGraphicPipelinePtr->PipelineLayout, 0, 1, 
         &TheVertexBufferPtr->DescriptorSets[CurrentFrame], 0, nullptr);
-    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(FXE::Indices.size()), 1, 0, 0, 0);
+    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(TheVertexBufferPtr->Indices.size()), 1, 0, 0, 0);
 
     vkCmdEndRenderPass(commandBuffer);
 
@@ -448,5 +461,4 @@ VkExtent2D FXEFrameCreation::choose_SwapExtent(const VkSurfaceCapabilitiesKHR& c
     actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
     return actualExtent;
-
 }
