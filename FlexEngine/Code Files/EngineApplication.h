@@ -7,12 +7,14 @@
 #include <GLFW/glfw3native.h>
 
 #include <vector>
+#include <string>
 
 #include "FXE_Window.h"
 #include "FXE_GraphicPipeline.h"
 #include "FXE_DebugMessenger.h"
 #include "FXE_FrameCreation.h"
 #include "FXE_VertexBuffer.h"
+#include "FXE_TextureImage.h"
 
 class FlexEngine {
 public:
@@ -31,21 +33,20 @@ private:
 
     void cleanup();
 
-    //Method
-    void createInstance();
-    void pickPhysicalDevice();
+    //Methods
+    void create_Instance();
+    void pick_PhysicalDevice();
     bool isDeviceSuitable(VkPhysicalDevice physicalDevice);
-    static bool checkValidationLayerSupport();
-    void createLogicalDevice();
+    static bool check_ValidationLayerSupport();
+    void create_LogicalDevice();
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
-    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+    uint32_t find_MemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
     //Extension Support Methods
-    static std::vector<const char*> getRequiredExtensions();
-    static void checkForExtensionsSupport();
-    static bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-
+    static std::vector<const char*> get_RequiredExtensions();
+    static void check_ForExtensionsSupport();
+    static bool check_DeviceExtensionSupport(VkPhysicalDevice device);
 
     //Variables
     FXEWindow TheWindow;
@@ -53,6 +54,7 @@ private:
     FXEDebugMessenger TheDebugMessenger;
     FXEFrameCreation TheFrameCreation;
     FXEVertexBuffer TheVertexBuffer;
+    FXETextureImage TheTextureImage;
 
     VkInstance Instance;
     VkPhysicalDevice PhysicalDevice = VK_NULL_HANDLE;
@@ -62,4 +64,7 @@ private:
 
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
+
+    const std::string Model_Path = "Code Files/Models/viking_room.obj";
+    const std::string Texture_Path = "Code Files/Textures/viking_room.png";
 };

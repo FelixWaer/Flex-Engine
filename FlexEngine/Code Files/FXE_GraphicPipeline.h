@@ -12,7 +12,7 @@ struct Vertex;
 class FXEGraphicPipeline
 {
 public:
-	void init_GraphicsPipeline(VkDevice device, VkFormat swapChainImageFormat, VkDescriptorSetLayout& descriptorSetLayout);
+	void init_GraphicsPipeline(VkDevice device, VkPhysicalDevice physicalDevice, VkFormat swapChainImageFormat, VkDescriptorSetLayout& descriptorSetLayout);
 	void cleanup(VkDevice device);
 
 	VkPipeline GraphicsPipeline;
@@ -24,5 +24,7 @@ private:
 
 	static VkShaderModule create_ShaderModule(VkDevice device, const std::vector<char>& data);
 	static std::vector<char> readFile(const char* filename);
-};
 
+	VkDevice Device;
+	VkPhysicalDevice PhysicalDevice;
+};

@@ -19,26 +19,28 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Code Files\EngineApplication.cpp" />
-    <ClCompile Include="Code Files\FXE_DebugMessenger.cpp" />
-    <ClCompile Include="Code Files\FXE_FrameCreation.cpp" />
-    <ClCompile Include="Code Files\FXE_GraphicPipeline.cpp" />
-    <ClCompile Include="Code Files\FXE_VertexBuffer.cpp" />
-    <ClCompile Include="Code Files\FXE_Window.cpp" />
+    <ClCompile Include="Code Files\Cpp Files\EngineApplication.cpp" />
+    <ClCompile Include="Code Files\Cpp Files\FXE_DebugMessenger.cpp" />
+    <ClCompile Include="Code Files\Cpp Files\FXE_FrameCreation.cpp" />
+    <ClCompile Include="Code Files\Cpp Files\FXE_GraphicPipeline.cpp" />
+    <ClCompile Include="Code Files\Cpp Files\FXE_TextureImage.cpp" />
+    <ClCompile Include="Code Files\Cpp Files\FXE_VertexBuffer.cpp" />
+    <ClCompile Include="Code Files\Cpp Files\FXE_Window.cpp" />
     <ClCompile Include="Code Files\main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Code Files\EngineApplication.h" />
-    <ClInclude Include="Code Files\ExtraFunctions.h" />
-    <ClInclude Include="Code Files\FXE_DebugMessenger.h" />
-    <ClInclude Include="Code Files\FXE_FrameCreation.h" />
-    <ClInclude Include="Code Files\FXE_GraphicPipeline.h" />
-    <ClInclude Include="Code Files\FXE_VertexBuffer.h" />
-    <ClInclude Include="Code Files\FXE_Window.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Code Files\Shader\Vertex_Shader.frag" />
     <None Include="Code Files\Shader\Vertex_Shader.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Code Files\EngineApplication.h" />
+    <ClInclude Include="Code Files\FXE_ExtraFunctions.h" />
+    <ClInclude Include="Code Files\FXE_DebugMessenger.h" />
+    <ClInclude Include="Code Files\FXE_FrameCreation.h" />
+    <ClInclude Include="Code Files\FXE_GraphicPipeline.h" />
+    <ClInclude Include="Code Files\FXE_TextureImage.h" />
+    <ClInclude Include="Code Files\FXE_VertexBuffer.h" />
+    <ClInclude Include="Code Files\FXE_Window.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -99,7 +101,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)\External Libraries\Vulkan\Include;$(ProjectDir)\External Libraries\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\External Libraries\Vulkan\Include;$(ProjectDir)\External Libraries\GLFW\include;$(ProjectDir)\External Libraries\STB;$(ProjectDir)\External Libraries\TinyObjLoader;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -117,7 +119,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)\External Libraries\Vulkan\Include;$(ProjectDir)\External Libraries\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\External Libraries\Vulkan\Include;$(ProjectDir)\External Libraries\GLFW\include;$(ProjectDir)\External Libraries\STB;$(ProjectDir)\External Libraries\TinyObjLoader;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -135,7 +137,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)\External Libraries\Vulkan\Include;$(ProjectDir)\External Libraries\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\External Libraries\Vulkan\Include;$(ProjectDir)\External Libraries\GLFW\include;$(ProjectDir)\External Libraries\STB;$(ProjectDir)\External Libraries\TinyObjLoader;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -153,7 +155,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)\External Libraries\Vulkan\Include;$(ProjectDir)\External Libraries\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\External Libraries\Vulkan\Include;$(ProjectDir)\External Libraries\GLFW\include;$(ProjectDir)\External Libraries\STB;$(ProjectDir)\External Libraries\TinyObjLoader;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

@@ -1,4 +1,4 @@
-#include "FXE_Window.h"
+#include "../FXE_Window.h"
 
 #include <iostream>
 
@@ -16,7 +16,6 @@ void FXEWindow::initWindow(int width, int height, const char* windowName, void* 
 	glfwSetWindowUserPointer(Window, pointer);
 	glfwSetFramebufferSizeCallback(Window, callback);
 }
-
 
 void FXEWindow::cleanup()
 {
