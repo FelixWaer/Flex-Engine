@@ -24,7 +24,6 @@ public:
 	void init_FrameCreation(VkDevice device, VkPhysicalDevice physicalDevice, FXEWindow* theWindow, FXEGraphicPipeline* theGraphicPipeline, FXEVertexBuffer* theVertexBuffer, FXETextureImage* theTextureImage);
 	void cleanup_SwapChain();
 	void cleanup_Semaphores();
-	void cleanup_DepthImages();
 	void draw_Frame(VkQueue presentQueue, VkQueue graphicsQueue);
 
 	/*Public Methods*/

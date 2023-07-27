@@ -31,8 +31,6 @@ public:
 
 	static void create_Buffer(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 	static uint32_t find_MemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
-	static VkCommandBuffer begin_SingleTimeCommands(VkDevice device, VkCommandPool commandPool);
-	static void end_SingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkCommandBuffer commandBuffer, VkQueue graphicsQueue);
 
 	VkBuffer VertexBuffer;
 	VkDeviceMemory VertexBufferMemory;

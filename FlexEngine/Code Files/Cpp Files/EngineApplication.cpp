@@ -57,7 +57,7 @@ void FlexEngine::initVulkan()
     TheTextureImage.init_TextureImage(Device, PhysicalDevice, GraphicsQueue, &TheFrameCreation, &TheVertexBuffer);
     TheFrameCreation.create_DepthResources(GraphicsQueue);
     TheFrameCreation.create_FrameBuffer();
-    TheTextureImage.create_TextureImage(GraphicsQueue, Texture_Path);
+    TheTextureImage.create_TextureImage(Texture_Path);
     TheTextureImage.create_TextureImageView();
     TheTextureImage.create_TextureSampler();
     TheVertexBuffer.init_VertexBuffer(Device, PhysicalDevice, TheWindow.Surface, GraphicsQueue, TheFrameCreation.get_MaxFramesInFlight(), Model_Path,
@@ -88,7 +88,6 @@ void FlexEngine::cleanup()
     TheVertexBuffer.cleanup(Device);
     TheGraphicPipeline.cleanup(Device);
     TheFrameCreation.cleanup_Semaphores();
-    TheFrameCreation.cleanup_DepthImages();
 
     vkDestroyDevice(Device, nullptr);
 

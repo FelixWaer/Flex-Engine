@@ -39,6 +39,10 @@ void FXEFrameCreation::init_FrameCreation(VkDevice device, VkPhysicalDevice phys
 //cleaning up the swap chain at the end of the program
 void FXEFrameCreation::cleanup_SwapChain()
 {
+    vkDestroyImageView(Device, DepthImageView, nullptr);
+    vkDestroyImage(Device, DepthImage, nullptr);
+    vkFreeMemory(Device, DepthImageMemory, nullptr);
+
     for (VkFramebuffer FrameBuffer : SwapChainFramebuffers)
     {
         vkDestroyFramebuffer(Device, FrameBuffer, nullptr);
@@ -63,13 +67,6 @@ void FXEFrameCreation::cleanup_Semaphores()
     }
 
     vkDestroyCommandPool(Device, CommandPool, nullptr);
-}
-
-void FXEFrameCreation::cleanup_DepthImages()
-{
-    vkDestroyImageView(Device, DepthImageView, nullptr);
-    vkDestroyImage(Device, DepthImage, nullptr);
-    vkFreeMemory(Device, DepthImageMemory, nullptr);
 }
 
 //Method that draws the frame on the screen
@@ -216,7 +213,7 @@ void FXEFrameCreation::create_ImageViews()
 
     for (size_t i = 0; i < SwapChainImages.size(); i++)
     {
-        SwapChainImageViews[i] = FXE::create_ImageView(Device, SwapChainImages[i], SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+        SwapChainImageViews[i] = FXE::create_ImageView(Device, SwapChainImages[i], SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
     }
 }
 
@@ -266,12 +263,10 @@ void FXEFrameCreation::create_DepthResources(VkQueue graphicsQueue)
 {
     VkFormat depthFormat = FXE::find_DepthFormat(PhysicalDevice);
 
-    FXE::create_Image(Device, PhysicalDevice, SwapChainExtent.width, SwapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL,
+    FXE::create_Image(Device, PhysicalDevice, SwapChainExtent.width, SwapChainExtent.height, 1, depthFormat, VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, DepthImage, DepthImageMemory);
 
-    DepthImageView = FXE::create_ImageView(Device, DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
-
-    TheTextureImagePtr->transition_ImageLayout(graphicsQueue, DepthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    DepthImageView = FXE::create_ImageView(Device, DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 }
 
 void FXEFrameCreation::create_CommandBuffer()
