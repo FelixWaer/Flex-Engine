@@ -2,8 +2,11 @@
 
 #include <iostream>
 
+#include "../FlexLibrary/Flextimer.h"
+
 void FXEWindow::initWindow(int width, int height, const char* windowName, void* pointer, GLFWframebuffersizefun callback)
 {
+	FlexTimer timer("window initializing");
 	Width = width;
 	Height = height;
 

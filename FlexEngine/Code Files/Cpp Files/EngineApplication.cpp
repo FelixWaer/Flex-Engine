@@ -16,6 +16,7 @@
 
 #include "../FXE_ExtraFunctions.h"
 
+
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
 const bool debugMode = false;
@@ -41,6 +42,7 @@ const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_N
 
 void FlexEngine::initVulkan()
 {
+    FlexTimer timer("Vulkan Initializing");
     TIME(auto start)
 
     create_Instance();
@@ -107,6 +109,7 @@ void FlexEngine::cleanup()
 /*---------------------------------*/
 void FlexEngine::create_Instance()
 {
+    FlexTimer timer("Instance creation");
 	if (enableValidationLayers && !check_ValidationLayerSupport())
 	{
         throw std::runtime_error("validation layers requested, but not available!");

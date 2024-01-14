@@ -9,6 +9,8 @@
 #include <vector>
 #include <string>
 
+#include "FlexLibrary/Flextimer.h"
+
 #include "FXE_Window.h"
 #include "FXE_GraphicPipeline.h"
 #include "FXE_DebugMessenger.h"
@@ -16,9 +18,11 @@
 #include "FXE_VertexBuffer.h"
 #include "FXE_TextureImage.h"
 
+
 class FlexEngine {
 public:
     void run() {
+        FlexTimer::clear_Timer();
         TheWindow.initWindow(static_cast<int>(WIDTH), static_cast<int>(HEIGHT), "FlexEngine", this, framebufferResizeCallback);
         initVulkan();
         mainLoop();
@@ -65,6 +69,6 @@ private:
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
 
-    const std::string Model_Path = "Code Files/Models/viking_room.obj";
-    const std::string Texture_Path = "Code Files/Textures/viking_room.png";
+    const std::string Model_Path = "Code Files/Models/pen.obj";
+    const std::string Texture_Path = "Code Files/Textures/texture2.jpg";
 };

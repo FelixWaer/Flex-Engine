@@ -26,6 +26,7 @@
     <ClCompile Include="Code Files\Cpp Files\FXE_TextureImage.cpp" />
     <ClCompile Include="Code Files\Cpp Files\FXE_VertexBuffer.cpp" />
     <ClCompile Include="Code Files\Cpp Files\FXE_Window.cpp" />
+    <ClCompile Include="Code Files\FlexLibrary\FlexTimer.cpp" />
     <ClCompile Include="Code Files\main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -34,6 +35,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Code Files\EngineApplication.h" />
+    <ClInclude Include="Code Files\FlexLibrary\Flextimer.h" />
     <ClInclude Include="Code Files\FXE_ExtraFunctions.h" />
     <ClInclude Include="Code Files\FXE_DebugMessenger.h" />
     <ClInclude Include="Code Files\FXE_FrameCreation.h" />

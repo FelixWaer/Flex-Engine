@@ -8,9 +8,12 @@
 #include "../FXE_VertexBuffer.h"
 #include "../FXE_FrameCreation.h"
 #include "../FXE_ExtraFunctions.h"
+#include "../FlexLibrary/Flextimer.h"
 
 void FXETextureImage::init_TextureImage(VkDevice device, VkPhysicalDevice physicalDevice, VkQueue graphicsQueue, FXEFrameCreation* theFrameCreation, FXEVertexBuffer* theVertexBuffer)
 {
+	FlexTimer timer("Texture Initializing");
+
 	Device = device;
 	PhysicalDevice = physicalDevice;
 	GraphicsQueue = graphicsQueue;

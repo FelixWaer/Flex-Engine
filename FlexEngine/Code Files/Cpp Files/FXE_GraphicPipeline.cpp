@@ -6,6 +6,7 @@
 
 #include "../FXE_ExtraFunctions.h"
 #include "../FXE_VertexBuffer.h"
+#include "../FlexLibrary/Flextimer.h"
 
 #ifdef NDEBUG
 const bool debugMode = false;
@@ -19,6 +20,8 @@ const bool debugMode = true;
 
 void FXEGraphicPipeline::init_GraphicsPipeline(VkDevice device, VkPhysicalDevice physicalDevice, VkFormat swapChainImageFormat, VkDescriptorSetLayout& descriptorSetLayout)
 {
+    FlexTimer timer("Graphics pipeline initializing");
+
     Device = device;
     PhysicalDevice = physicalDevice;
 

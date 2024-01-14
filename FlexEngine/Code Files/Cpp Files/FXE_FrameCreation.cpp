@@ -15,6 +15,7 @@
 #include "../FXE_VertexBuffer.h"
 #include "../FXE_TextureImage.h"
 #include "../FXE_ExtraFunctions.h"
+#include "../FlexLibrary/Flextimer.h"
 
 #define TIME(x) x = std::chrono::high_resolution_clock::now();
 #define PRINT_TIME_NS(text, start, end) std::cout << text << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
@@ -27,6 +28,7 @@
 //initializing the pointers pointing to the window and graphics class
 void FXEFrameCreation::init_FrameCreation(VkDevice device, VkPhysicalDevice physicalDevice, FXEWindow* theWindow, FXEGraphicPipeline* theGraphicPipeline, FXEVertexBuffer* theVertexBuffer, FXETextureImage* theTextureImage)
 {
+    FlexTimer timer("Frame creation initializing");
     Device = device;
     PhysicalDevice = physicalDevice;
 

@@ -11,6 +11,7 @@
 #include "../FXE_ExtraFunctions.h"
 #include "../FXE_TextureImage.h"
 #include "../FXE_FrameCreation.h"
+#include "../FlexLibrary/Flextimer.h"
 
 /*---------------------------------*/
 /*---------Public Methods----------*/
@@ -19,6 +20,8 @@
 void FXEVertexBuffer::init_VertexBuffer(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQueue graphicsQueue, 
     uint32_t maxFramesInFlight, const std::string& modelPath, FXEFrameCreation* theFrameCreation , FXETextureImage* theTextureImage)
 {
+    FlexTimer timer("Vertex Buffer Initializing");
+
     Device = device;
     PhysicalDevice = physicalDevice;
     TheFrameCreationPtr = theFrameCreation;
@@ -291,6 +294,8 @@ void FXEVertexBuffer::copy_Buffer(VkQueue graphicsQueue, VkBuffer srcBuffer, VkB
 
 void FXEVertexBuffer::load_Model(const std::string& modelPath)
 {
+    FlexTimer timer("Model loading");
+
     tinyobj::attrib_t attribute;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
