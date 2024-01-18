@@ -36,6 +36,11 @@ const bool debugMode = true;
 #define PRINT_TIME_NS(text, start, end) std::cout << text << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 #define PRINT_TIME_MS(text, start, end) std::cout << text << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
 
+double Xpos = 0;
+double Ypos = 0;
+float forward = 5.0f;
+float right = 0;
+float up = 0;
 /*---------------------------------*/
 /*----------Const Vector-----------*/
 /*---------------------------------*/
@@ -77,6 +82,31 @@ void FlexEngine::mainLoop()
 	{
 		glfwPollEvents();
         draw_Frame();
+        glfwGetCursorPos(TheWindow.Window, &Xpos, &Ypos);
+		if (glfwGetKey(TheWindow.Window, GLFW_KEY_S) == GLFW_PRESS)
+		{
+            forward += 0.01;
+		}
+        if (glfwGetKey(TheWindow.Window, GLFW_KEY_W) == GLFW_PRESS)
+        {
+            forward -= 0.01;
+        }
+        if (glfwGetKey(TheWindow.Window, GLFW_KEY_A) == GLFW_PRESS)
+        {
+            right += 0.01;
+        }
+        if (glfwGetKey(TheWindow.Window, GLFW_KEY_D) == GLFW_PRESS)
+        {
+            right -= 0.01;
+        }
+        if (glfwGetKey(TheWindow.Window, GLFW_KEY_Q) == GLFW_PRESS)
+        {
+            up += 0.01;
+        }
+        if (glfwGetKey(TheWindow.Window, GLFW_KEY_E) == GLFW_PRESS)
+        {
+            up -= 0.01;
+        }
 	}
     vkDeviceWaitIdle(Device);
 }
@@ -1039,9 +1069,15 @@ void FlexEngine::update_UniformBuffer(uint32_t currentImage)
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
     FXE::UniformBufferObject ubo{};
-    ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.view = glm::lookAt(glm::vec3(2.0f, 20.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(SwapChainExtent.width) / static_cast<float>(SwapChainExtent.height), 0.1f, 100.0f);
+    // (time) has to be multiplied with glm::radians
+    if (forward <= 1.0f)
+    {
+        forward = 1.0f;
+    }
+    ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(static_cast<float>(Xpos/10)), glm::vec3(0.0f, 0.0f, 1.0f)) * 
+        glm::rotate(glm::mat4(1.0f), glm::radians(static_cast<float>(Ypos)), glm::vec3(0.0f, 1.0f, 0.0f));
+    ubo.view = glm::lookAt(glm::vec3(right, forward, up), glm::vec3(right, 1.0f, up), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.proj = glm::perspective(glm::radians(90.0f), static_cast<float>(SwapChainExtent.width) / static_cast<float>(SwapChainExtent.height), 0.1f, 100.0f);
     ubo.proj[1][1] *= -1;
 
     memcpy(UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
