@@ -30,18 +30,6 @@
     <ClCompile Include="Code Files\Cpp Files\FXE_DebugMessenger.cpp">
       <Filter>CPP Files</Filter>
     </ClCompile>
-    <ClCompile Include="Code Files\Cpp Files\FXE_FrameCreation.cpp">
-      <Filter>CPP Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Code Files\Cpp Files\FXE_GraphicPipeline.cpp">
-      <Filter>CPP Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Code Files\Cpp Files\FXE_TextureImage.cpp">
-      <Filter>CPP Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Code Files\Cpp Files\FXE_VertexBuffer.cpp">
-      <Filter>CPP Files</Filter>
-    </ClCompile>
     <ClCompile Include="Code Files\Cpp Files\FXE_Window.cpp">
       <Filter>CPP Files</Filter>
     </ClCompile>
@@ -65,18 +53,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Code Files\FXE_DebugMessenger.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Code Files\FXE_FrameCreation.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Code Files\FXE_GraphicPipeline.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Code Files\FXE_TextureImage.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Code Files\FXE_VertexBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Code Files\FXE_Window.h">
