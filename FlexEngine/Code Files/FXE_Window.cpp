@@ -1,8 +1,8 @@
-#include "../FXE_Window.h"
+#include "FXE_Window.h"
 
 #include <iostream>
 
-#include "../FlexLibrary/Flextimer.h"
+#include "FlexLibrary/Flextimer.h"
 
 void FXEWindow::initWindow(int width, int height, const char* windowName, void* pointer, GLFWframebuffersizefun callback)
 {

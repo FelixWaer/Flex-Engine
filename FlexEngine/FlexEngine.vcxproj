@@ -19,22 +19,25 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Code Files\Cpp Files\EngineApplication.cpp" />
-    <ClCompile Include="Code Files\Cpp Files\FXE_DebugMessenger.cpp" />
-    <ClCompile Include="Code Files\Cpp Files\FXE_Window.cpp" />
     <ClCompile Include="Code Files\FlexLibrary\FlexTimer.cpp" />
+    <ClCompile Include="Code Files\FXE_DebugMessenger.cpp" />
+    <ClCompile Include="Code Files\FXE_Window.cpp" />
     <ClCompile Include="Code Files\main.cpp" />
+    <ClCompile Include="Code Files\Rendering\EngineApplication.cpp" />
+    <ClCompile Include="Code Files\Rendering\FXE_Model.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Code Files\Shader\Vertex_Shader.frag" />
     <None Include="Code Files\Shader\Vertex_Shader.vert" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Code Files\EngineApplication.h" />
     <ClInclude Include="Code Files\FlexLibrary\Flextimer.h" />
     <ClInclude Include="Code Files\FXE_ExtraFunctions.h" />
     <ClInclude Include="Code Files\FXE_DebugMessenger.h" />
     <ClInclude Include="Code Files\FXE_Window.h" />
+    <ClInclude Include="Code Files\Rendering\EngineApplication.h" />
+    <ClInclude Include="Code Files\Rendering\FXE_Model.h" />
+    <ClInclude Include="Code Files\Rendering\FXE_RendererManager.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

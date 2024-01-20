@@ -1,4 +1,4 @@
-#include "../EngineApplication.h"
+#include "EngineApplication.h"
 
 #include <iostream>
 #include <cstring>
@@ -22,6 +22,7 @@
 
 #include "../FXE_ExtraFunctions.h"
 #include "../FlexLibrary/Flextimer.h"
+#include "FXE_RendererManager.h"
 
 
 #ifdef NDEBUG
@@ -32,15 +33,16 @@ const bool enableValidationLayers = true;
 const bool debugMode = true;
 #endif
 
-#define TIME(x) x = std::chrono::high_resolution_clock::now();
-#define PRINT_TIME_NS(text, start, end) std::cout << text << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
-#define PRINT_TIME_MS(text, start, end) std::cout << text << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
-
 double Xpos = 0;
 double Ypos = 0;
+double tempXpos = 0.f;
+double tempYpos = 0.f;
+
 float forward = 5.0f;
-float right = 0;
-float up = 0;
+float right = 0.f;
+float up = 0.f;
+float rotateZAxes = 0.f;
+float rotateYAxes = 0.f;
 /*---------------------------------*/
 /*----------Const Vector-----------*/
 /*---------------------------------*/
@@ -55,6 +57,7 @@ const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_N
 void FlexEngine::initVulkan()
 {
     FlexTimer timer("Vulkan Initializing");
+    Model_2.Model_Path = Model_Path_2;
 
     create_Instance();
     TheDebugMessenger.setup_DebugMessenger(Instance);
@@ -66,6 +69,7 @@ void FlexEngine::initVulkan()
     create_DescriptorSetLayout();
     init_GraphicsPipeline(SwapChainImageFormat, DescriptorSetLayout);
     create_CommandPool();
+    create_ColorResources();
     create_DepthResources();
 	create_FrameBuffer();
     create_TextureImage(Texture_Path);
@@ -80,9 +84,33 @@ void FlexEngine::mainLoop()
 {
 	while (!TheWindow.windowClosing())
 	{
+        auto startTime = std::chrono::high_resolution_clock::now();
+
 		glfwPollEvents();
         draw_Frame();
-        glfwGetCursorPos(TheWindow.Window, &Xpos, &Ypos);
+		if (glfwGetMouseButton(TheWindow.Window, 0) == GLFW_PRESS)
+		{
+            glfwGetCursorPos(TheWindow.Window, &Xpos, &Ypos);
+
+            if (Xpos > tempXpos)
+            {
+                rotateZAxes += 1.f;
+            }
+            if (Xpos < tempXpos)
+            {
+                rotateZAxes -= 1.f;
+            }
+            if (Ypos > tempYpos)
+            {
+                rotateYAxes += 1.f;
+            }
+            if (Ypos < tempYpos)
+            {
+                rotateYAxes -= 1.f;
+            }
+            tempXpos = Xpos;
+            tempYpos = Ypos;
+		}
 		if (glfwGetKey(TheWindow.Window, GLFW_KEY_S) == GLFW_PRESS)
 		{
             forward += 0.01;
@@ -107,6 +135,11 @@ void FlexEngine::mainLoop()
         {
             up -= 0.01;
         }
+
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        
+        float time = std::chrono::duration<float, std::chrono::milliseconds::period>(currentTime - startTime).count();
+        //std::cout << 1000.f/time << std::endl;
 	}
     vkDeviceWaitIdle(Device);
 }
@@ -139,6 +172,7 @@ void FlexEngine::cleanup()
 void FlexEngine::create_Instance()
 {
     FlexTimer timer("Instance creation");
+
 	if (enableValidationLayers && !check_ValidationLayerSupport())
 	{
         throw std::runtime_error("validation layers requested, but not available!");
@@ -200,9 +234,10 @@ void FlexEngine::pick_PhysicalDevice()
 
     for (const auto& device : devices)
     {
-	    if (isDeviceSuitable(device))
+	    if (is_DeviceSuitable(device))
 	    {
             PhysicalDevice = device;
+            MSAASamples = get_MaxUsableSampleCount();
             break;
 	    }
     }
@@ -214,7 +249,7 @@ void FlexEngine::pick_PhysicalDevice()
 }
 
 //Checks if the GPU's queue families are suitable
-bool FlexEngine::isDeviceSuitable(VkPhysicalDevice physicalDevice)
+bool FlexEngine::is_DeviceSuitable(VkPhysicalDevice physicalDevice)
 {
 	//find queue families and checks if its suitable
     FXE::QueueFamilyIndices indices = FXE::find_QueueFamilies(physicalDevice, TheWindow.Surface);
@@ -256,6 +291,7 @@ void FlexEngine::create_LogicalDevice()
 
     VkPhysicalDeviceFeatures deviceFeatures{};
     deviceFeatures.samplerAnisotropy = VK_TRUE;
+    deviceFeatures.sampleRateShading = VK_TRUE;
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -368,7 +404,7 @@ VkImageView FlexEngine::create_ImageView(VkImage image, VkFormat format, VkImage
     return imageView;
 }
 
-void FlexEngine::create_Image(uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
+void FlexEngine::create_Image(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
 {
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -383,7 +419,7 @@ void FlexEngine::create_Image(uint32_t width, uint32_t height, uint32_t mipLevel
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     imageInfo.usage = usage;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageInfo.samples = numSamples;
     imageInfo.flags = 0;
 
     if (vkCreateImage(Device, &imageInfo, nullptr, &image) != VK_SUCCESS)
@@ -537,11 +573,13 @@ void FlexEngine::create_GraphicsPipeline(VkDescriptorSetLayout& descriptorSetLay
     VkPipelineMultisampleStateCreateInfo multisamplingInfo{};
     multisamplingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisamplingInfo.sampleShadingEnable = VK_FALSE;
-    multisamplingInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisamplingInfo.rasterizationSamples = MSAASamples;
     multisamplingInfo.minSampleShading = 1.0f;
     multisamplingInfo.pSampleMask = nullptr;
     multisamplingInfo.alphaToCoverageEnable = VK_FALSE;
     multisamplingInfo.alphaToOneEnable = VK_FALSE;
+    multisamplingInfo.sampleShadingEnable = VK_TRUE;
+    multisamplingInfo.minSampleShading = .2f;
 
     VkPipelineDepthStencilStateCreateInfo depthStencilInfo{};
     depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
@@ -594,7 +632,6 @@ void FlexEngine::create_GraphicsPipeline(VkDescriptorSetLayout& descriptorSetLay
         throw std::runtime_error("failed to create pipeline layout!");
     }
 
-    //creating the graphics pipeline
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount = 2;
@@ -626,23 +663,33 @@ void FlexEngine::create_RenderPass(VkFormat swapChainImageFormat)
 {
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = swapChainImageFormat;
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    colorAttachment.samples = MSAASamples;
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     VkAttachmentDescription depthAttachment{};
     depthAttachment.format = FXE::find_DepthFormat(PhysicalDevice);
-    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    depthAttachment.samples = MSAASamples;
     depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentDescription colorAttachmentResolve{};
+    colorAttachmentResolve.format = swapChainImageFormat;
+    colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+    colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
     VkAttachmentReference colorAttachmentRef{};
     colorAttachmentRef.attachment = 0;
@@ -652,11 +699,16 @@ void FlexEngine::create_RenderPass(VkFormat swapChainImageFormat)
     depthAttachmentRef.attachment = 1;
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+    VkAttachmentReference colorAttachmentResolveRef{};
+    colorAttachmentResolveRef.attachment = 2;
+    colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
     VkSubpassDescription subpass{};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
     subpass.pDepthStencilAttachment = &depthAttachmentRef;
+    subpass.pResolveAttachments = &colorAttachmentResolveRef;
 
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -666,7 +718,7 @@ void FlexEngine::create_RenderPass(VkFormat swapChainImageFormat)
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-    std::array<VkAttachmentDescription, 2> attachments = { colorAttachment, depthAttachment };
+    std::array<VkAttachmentDescription, 3> attachments = { colorAttachment, depthAttachment, colorAttachmentResolve };
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
@@ -724,6 +776,10 @@ std::vector<char> FlexEngine::readFile(const char* filename)
 
 void FlexEngine::cleanup_SwapChain()
 {
+    vkDestroyImageView(Device, ColorImageView, nullptr);
+    vkDestroyImage(Device, ColorImage, nullptr);
+    vkFreeMemory(Device, ColorImageMemory, nullptr);
+
     vkDestroyImageView(Device, DepthImageView, nullptr);
     vkDestroyImage(Device, DepthImage, nullptr);
     vkFreeMemory(Device, DepthImageMemory, nullptr);
@@ -761,10 +817,7 @@ void FlexEngine::draw_Frame()
     VkResult result = vkAcquireNextImageKHR(Device, SwapChain, UINT64_MAX, ImageAvailableSemaphores[CurrentFrame], VK_NULL_HANDLE, &imageIndex);
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
-        TIME(auto start)
             recreate_SwapChain();
-        TIME(auto end)
-            PRINT_TIME_MS("time to recreate: ", start, end)
             return;
     }
     else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
@@ -812,10 +865,7 @@ void FlexEngine::draw_Frame()
     {
         FramebufferRezised = false;
 
-        TIME(auto start);
         recreate_SwapChain();
-        TIME(auto end);
-        PRINT_TIME_MS("time to recreate: ", start, end)
     }
     else if (result != VK_SUCCESS)
     {
@@ -901,8 +951,10 @@ void FlexEngine::create_FrameBuffer()
 
     for (size_t i = 0; i < SwapChainImageViews.size(); i++)
     {
-        std::array<VkImageView, 2> attachments = {
-           SwapChainImageViews[i], DepthImageView
+        std::array<VkImageView, 3> attachments = {
+			ColorImageView,
+        	DepthImageView,
+            SwapChainImageViews[i]
         };
 
 
@@ -941,7 +993,7 @@ void FlexEngine::create_DepthResources()
 {
     VkFormat depthFormat = FXE::find_DepthFormat(PhysicalDevice);
 
-    create_Image(SwapChainExtent.width, SwapChainExtent.height, 1, depthFormat, VK_IMAGE_TILING_OPTIMAL,
+    create_Image(SwapChainExtent.width, SwapChainExtent.height, 1, MSAASamples, depthFormat, VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, DepthImage, DepthImageMemory);
 
     DepthImageView = create_ImageView(DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
@@ -997,6 +1049,7 @@ void FlexEngine::recreate_SwapChain()
 
     create_SwapChain();
     create_ImageViews();
+    create_ColorResources();
     create_DepthResources();
     create_FrameBuffer();
 }
@@ -1044,14 +1097,21 @@ void FlexEngine::record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     scissor.extent = SwapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    VkBuffer vertexBuffers[] = { VertexBuffer };
+    VkBuffer vertexBuffers[] = { Model_1.VertexBuffer };
     VkDeviceSize offsets[] = { 0 };
 
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(commandBuffer, IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindIndexBuffer(commandBuffer, Model_1.IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0, 1,
         &DescriptorSets[CurrentFrame], 0, nullptr);
-    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(Indices.size()), 1, 0, 0, 0);
+    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(Model_1.Indices.size()), 1, 0, 0, 0);
+
+    VkBuffer vertexBuffers_2[] = { Model_2.VertexBuffer };
+    VkDeviceSize offsets_2[] = { 0 };
+
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers_2, offsets_2);
+    vkCmdBindIndexBuffer(commandBuffer, Model_2.IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(Model_2.Indices.size()), 1, 0, 0, 0);
 
     vkCmdEndRenderPass(commandBuffer);
 
@@ -1069,13 +1129,12 @@ void FlexEngine::update_UniformBuffer(uint32_t currentImage)
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
     FXE::UniformBufferObject ubo{};
-    // (time) has to be multiplied with glm::radians
     if (forward <= 1.0f)
     {
         forward = 1.0f;
     }
-    ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(static_cast<float>(Xpos/10)), glm::vec3(0.0f, 0.0f, 1.0f)) * 
-        glm::rotate(glm::mat4(1.0f), glm::radians(static_cast<float>(Ypos)), glm::vec3(0.0f, 1.0f, 0.0f));
+    ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(static_cast<float>(rotateZAxes)), glm::vec3(0.0f, 0.0f, 1.0f)) * 
+        glm::rotate(glm::mat4(1.0f), glm::radians(static_cast<float>(rotateYAxes)), glm::vec3(1.0f, 0.0f, 0.0f));
     ubo.view = glm::lookAt(glm::vec3(right, forward, up), glm::vec3(right, 1.0f, up), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.proj = glm::perspective(glm::radians(90.0f), static_cast<float>(SwapChainExtent.width) / static_cast<float>(SwapChainExtent.height), 0.1f, 100.0f);
     ubo.proj[1][1] *= -1;
@@ -1161,7 +1220,7 @@ void FlexEngine::create_TextureImage(const std::string& texturePath)
 
     stbi_image_free(pixels);
 
-    create_Image(texWidth, texHeight, MipLevels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+    create_Image(texWidth, texHeight, MipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, TextureImage, TextureImageMemory);
 
     transition_ImageLayout(TextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, MipLevels);
@@ -1388,10 +1447,17 @@ void FlexEngine::generate_Mipmaps(VkImage texImage, VkFormat imageFormat, int32_
 
 void FlexEngine::init_VertexBuffer()
 {
-    load_Model(Model_Path);
     create_VertexCommandPool();
-    create_VertexBuffer();
-    create_IndexBuffer();
+    for (Model* fxeModel : FXE::ModelManager)
+    {
+        load_Model(fxeModel);
+        create_VertexBuffer(fxeModel);
+        create_IndexBuffer(fxeModel);
+    }
+    //create_VertexBuffer();
+    //create_VertexBuffer_2();
+    //create_IndexBuffer();
+    //create_IndexBuffer_2();
     create_UniformBuffers();
     create_DescriptorPool();
     create_DescriptorSets();
@@ -1399,10 +1465,15 @@ void FlexEngine::init_VertexBuffer()
 
 void FlexEngine::cleanup_VertexBuffer()
 {
-    vkDestroyBuffer(Device, IndexBuffer, nullptr);
-    vkFreeMemory(Device, IndexBufferMemory, nullptr);
-    vkDestroyBuffer(Device, VertexBuffer, nullptr);
-    vkFreeMemory(Device, VertexBufferMemory, nullptr);
+    vkDestroyBuffer(Device, Model_1.IndexBuffer, nullptr);
+    vkFreeMemory(Device, Model_1.IndexBufferMemory, nullptr);
+    vkDestroyBuffer(Device, Model_1.VertexBuffer, nullptr);
+    vkFreeMemory(Device, Model_1.VertexBufferMemory, nullptr);
+    vkDestroyBuffer(Device, Model_2.IndexBuffer, nullptr);
+    vkFreeMemory(Device, Model_2.IndexBufferMemory, nullptr);
+    vkDestroyBuffer(Device, Model_2.VertexBuffer, nullptr);
+    vkFreeMemory(Device, Model_2.VertexBufferMemory, nullptr);
+
     vkDestroyCommandPool(Device, VertexCommandPool, nullptr);
     vkDestroyDescriptorPool(Device, DescriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(Device, DescriptorSetLayout, nullptr);
@@ -1428,9 +1499,9 @@ void FlexEngine::create_VertexCommandPool()
     }
 }
 
-void FlexEngine::create_VertexBuffer()
+void FlexEngine::create_VertexBuffer(Model* modelPtr)
 {
-    VkDeviceSize bufferSize = sizeof(Vertices[0]) * Vertices.size();
+    VkDeviceSize bufferSize = sizeof(modelPtr->Vertices[0]) * modelPtr->Vertices.size();
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -1440,20 +1511,20 @@ void FlexEngine::create_VertexBuffer()
 
     void* data;
     vkMapMemory(Device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, Vertices.data(), bufferSize);
+    memcpy(data, modelPtr->Vertices.data(), bufferSize);
     vkUnmapMemory(Device, stagingBufferMemory);
 
-    create_Buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VertexBuffer, VertexBufferMemory);
+    create_Buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, modelPtr->VertexBuffer, modelPtr->VertexBufferMemory);
 
-    copy_Buffer(stagingBuffer, VertexBuffer, bufferSize);
+    copy_Buffer(stagingBuffer, modelPtr->VertexBuffer, bufferSize);
 
     vkDestroyBuffer(Device, stagingBuffer, nullptr);
     vkFreeMemory(Device, stagingBufferMemory, nullptr);
 }
 
-void FlexEngine::create_IndexBuffer()
+void FlexEngine::create_IndexBuffer(Model* modelPtr)
 {
-    VkDeviceSize bufferSize = sizeof(Indices[0]) * Indices.size();
+    VkDeviceSize bufferSize = sizeof(modelPtr->Indices[0]) * modelPtr->Indices.size();
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -1463,13 +1534,13 @@ void FlexEngine::create_IndexBuffer()
 
     void* data;
     vkMapMemory(Device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, Indices.data(), bufferSize);
+    memcpy(data, modelPtr->Indices.data(), bufferSize);
     vkUnmapMemory(Device, stagingBufferMemory);
 
     create_Buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, IndexBuffer, IndexBufferMemory);
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, modelPtr->IndexBuffer, modelPtr->IndexBufferMemory);
 
-    copy_Buffer(stagingBuffer, IndexBuffer, bufferSize);
+    copy_Buffer(stagingBuffer, modelPtr->IndexBuffer, bufferSize);
 
     vkDestroyBuffer(Device, stagingBuffer, nullptr);
     vkFreeMemory(Device, stagingBufferMemory, nullptr);
@@ -1602,16 +1673,17 @@ void FlexEngine::copy_Buffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSiz
     end_SingleTimeCommands(commandBuffer);
 }
 
-void FlexEngine::load_Model(const std::string& modelPath)
+void FlexEngine::load_Model(Model* modelPtr)
 {
     FlexTimer timer("Model loading");
 
+    std::cout << "aaa" << std::endl;
     tinyobj::attrib_t attribute;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
     std::string warning, error;
 
-    if (!tinyobj::LoadObj(&attribute, &shapes, &materials, &warning, &error, modelPath.c_str()))
+    if (!tinyobj::LoadObj(&attribute, &shapes, &materials, &warning, &error, modelPtr->Model_Path.c_str()))
     {
         throw std::runtime_error(warning + error);
     }
@@ -1639,14 +1711,15 @@ void FlexEngine::load_Model(const std::string& modelPath)
 
             if (uniqueVertices.contains(vertex) == 0)
             {
-                uniqueVertices[vertex] = static_cast<uint32_t>(Vertices.size());
-                Vertices.push_back(vertex);
+                uniqueVertices[vertex] = static_cast<uint32_t>(modelPtr->Vertices.size());
+                modelPtr->Vertices.push_back(vertex);
             }
 
-            Indices.push_back(uniqueVertices[vertex]);
+            modelPtr->Indices.push_back(uniqueVertices[vertex]);
         }
     }
 }
+
 
 void FlexEngine::create_Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
 {
@@ -1710,4 +1783,48 @@ VkCommandBuffer FlexEngine::begin_SingleTimeCommands()
     vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
     return commandBuffer;
+}
+
+VkSampleCountFlagBits FlexEngine::get_MaxUsableSampleCount()
+{
+    VkPhysicalDeviceProperties physicalDeviceProperties;
+    vkGetPhysicalDeviceProperties(PhysicalDevice, &physicalDeviceProperties);
+
+    VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts &
+        physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+    if (counts & VK_SAMPLE_COUNT_64_BIT)
+    {
+        return VK_SAMPLE_COUNT_64_BIT;
+    }
+    if (counts & VK_SAMPLE_COUNT_32_BIT)
+    {
+        return VK_SAMPLE_COUNT_32_BIT;
+    }
+    if (counts & VK_SAMPLE_COUNT_16_BIT)
+    {
+        return VK_SAMPLE_COUNT_16_BIT;
+    }
+    if (counts & VK_SAMPLE_COUNT_8_BIT)
+    {
+        return VK_SAMPLE_COUNT_8_BIT;
+    }
+    if (counts & VK_SAMPLE_COUNT_4_BIT)
+    {
+        return VK_SAMPLE_COUNT_4_BIT;
+    }
+    if (counts & VK_SAMPLE_COUNT_2_BIT)
+    {
+        return VK_SAMPLE_COUNT_2_BIT;
+    }
+
+    return VK_SAMPLE_COUNT_1_BIT;
+}
+
+void FlexEngine::create_ColorResources()
+{
+    VkFormat colorFormat = SwapChainImageFormat;
+
+    create_Image(SwapChainExtent.width, SwapChainExtent.height, 1, MSAASamples, colorFormat, VK_IMAGE_TILING_OPTIMAL, 
+        VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, ColorImage, ColorImageMemory);
+    ColorImageView = create_ImageView(ColorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 }

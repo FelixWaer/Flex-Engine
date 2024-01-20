@@ -9,12 +9,12 @@
 #include <vector>
 #include <string>
 
-#include "FlexLibrary/Flextimer.h"
+#include "../FlexLibrary/Flextimer.h"
 
-#include "FXE_Window.h"
-#include "FXE_DebugMessenger.h"
-#include "FXE_ExtraFunctions.h"
-
+#include "../FXE_Window.h"
+#include "../FXE_DebugMessenger.h"
+#include "../FXE_ExtraFunctions.h"
+#include "FXE_Model.h"
 
 class FlexEngine {
 public:
@@ -37,14 +37,14 @@ private:
     //Methods
     void create_Instance();
     void pick_PhysicalDevice();
-    bool isDeviceSuitable(VkPhysicalDevice physicalDevice);
+    bool is_DeviceSuitable(VkPhysicalDevice physicalDevice);
     static bool check_ValidationLayerSupport();
     void create_LogicalDevice();
     static void frameBufferResizeCallback(GLFWwindow* window, int width, int height);
 
     uint32_t find_MemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
     VkImageView create_ImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
-    void create_Image(uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
+    void create_Image(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSample, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
         VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 
     //Extension Support Methods
@@ -98,19 +98,23 @@ private:
     void cleanup_VertexBuffer();
 
     void create_VertexCommandPool();
-    void create_VertexBuffer();
-    void create_IndexBuffer();
+    void create_VertexBuffer(Model* modelPtr);
+    void create_IndexBuffer(Model* modelPtr);
     void create_DescriptorSetLayout();
     void create_UniformBuffers();
     void create_DescriptorPool();
     void create_DescriptorSets();
 
     void copy_Buffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-    void load_Model(const std::string& modelPath);
+    void load_Model(Model* modelPtr);
     void create_Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 
     void end_SingleTimeCommands(VkCommandBuffer commandBuffer);
     VkCommandBuffer begin_SingleTimeCommands();
+
+    //Multisampling Methods
+    VkSampleCountFlagBits get_MaxUsableSampleCount();
+    void create_ColorResources();
 
     //Variables
     FXEWindow TheWindow;
@@ -159,11 +163,6 @@ private:
 
     uint32_t MipLevels;
 
-    //Vertex Buffer Variables
-    VkBuffer VertexBuffer;
-    VkDeviceMemory VertexBufferMemory;
-    VkBuffer IndexBuffer;
-    VkDeviceMemory IndexBufferMemory;
     VkDescriptorSetLayout DescriptorSetLayout;
     VkDescriptorPool DescriptorPool;
     VkCommandPool VertexCommandPool;
@@ -173,13 +172,20 @@ private:
     std::vector<void*> UniformBuffersMapped;
     std::vector<VkDescriptorSet> DescriptorSets;
 
-    std::vector<FXE::Vertex> Vertices;
-    std::vector<uint32_t> Indices;
+    //Multisampling
+    VkSampleCountFlagBits MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    VkImage ColorImage;
+    VkDeviceMemory ColorImageMemory;
+    VkImageView ColorImageView;
 
     //Other Variables
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
-
     const std::string Model_Path = "Code Files/Models/pen.obj";
     const std::string Texture_Path = "Code Files/Textures/texture2.jpg";
+    const std::string Model_Path_2 = "Code Files/Models/viking_room.obj";
+    const std::string Texture_Path_2 = "Code Files/Textures/texture2.jpg";
+
+    Model Model_1;
+    Model Model_2;
 };
