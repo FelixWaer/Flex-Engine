@@ -19,5 +19,19 @@ public:
 	VkBuffer IndexBuffer;
 	VkDeviceMemory VertexBufferMemory;
 	VkDeviceMemory IndexBufferMemory;
+
+	VkDescriptorSetLayout DescriptorSetLayout;
+	VkDescriptorPool DescriptorPool;
+	std::vector<VkDescriptorSet> DescriptorSets;
+
+
+	std::vector<VkBuffer> UniformBuffers;
+	std::vector<VkDeviceMemory> UniformBuffersMemory;
+	std::vector<void*> UniformBuffersMapped;
+
+	VkPipeline GraphicsPipeline;
+	VkPipelineLayout PipelineLayout;
+
+	void update_Uniformbuffer();
 private:
 };

@@ -15,6 +15,13 @@
 #include "../FXE_DebugMessenger.h"
 #include "../FXE_ExtraFunctions.h"
 #include "FXE_Model.h"
+#include "FXE_Camera.h"
+
+struct MeshPushConstants
+{
+    glm::vec4 Data;
+    glm::mat4 RenderMatrix;
+};
 
 class FlexEngine {
 public:
@@ -53,9 +60,9 @@ private:
     static bool check_DeviceExtensionSupport(VkPhysicalDevice device);
 
     //Graphic Pipeline Methods
-    void init_GraphicsPipeline(VkFormat swapChainImageFormat, VkDescriptorSetLayout& descriptorSetLayout);
+    void init_GraphicsPipeline();
     void cleanup_GraphicsPipeline();
-    void create_GraphicsPipeline(VkDescriptorSetLayout& descriptorSetLayout);
+    void create_GraphicsPipeline(Model* fxeModel);
     void create_RenderPass(VkFormat swapChainImageFormat);
     VkShaderModule create_ShaderModule(const std::vector<char>& data);
 
@@ -77,6 +84,7 @@ private:
     void recreate_SwapChain();
     void record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     void update_UniformBuffer(uint32_t currentImage);
+    void update_UniformBuffer_2(uint32_t currentImage);
 
     static VkSurfaceFormatKHR choose_SwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableSurfaceFormats);
     static VkPresentModeKHR choose_SwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
@@ -98,15 +106,15 @@ private:
     void cleanup_VertexBuffer();
 
     void create_VertexCommandPool();
+    void load_Model(Model* modelPtr);
     void create_VertexBuffer(Model* modelPtr);
     void create_IndexBuffer(Model* modelPtr);
-    void create_DescriptorSetLayout();
-    void create_UniformBuffers();
-    void create_DescriptorPool();
-    void create_DescriptorSets();
+    void create_DescriptorSetLayout(Model* fxeModel);
+    void create_UniformBuffers(Model* fxeModel);
+    void create_DescriptorPool(Model* fxeModel);
+    void create_DescriptorSets(Model* fxeModel);
 
     void copy_Buffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-    void load_Model(Model* modelPtr);
     void create_Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 
     void end_SingleTimeCommands(VkCommandBuffer commandBuffer);
@@ -127,9 +135,9 @@ private:
     VkQueue PresentQueue;
 
     //Graphics Pipeline Variables
-    VkPipeline GraphicsPipeline;
+    //VkPipeline GraphicsPipeline;
     VkRenderPass RenderPass;
-    VkPipelineLayout PipelineLayout;
+    VkPipelineLayout MeshPipelineLayout;
 
     //Frame Creation Variables
     VkFormat SwapChainImageFormat;
@@ -163,14 +171,14 @@ private:
 
     uint32_t MipLevels;
 
-    VkDescriptorSetLayout DescriptorSetLayout;
-    VkDescriptorPool DescriptorPool;
+    //VkDescriptorSetLayout DescriptorSetLayout;
+    //VkDescriptorPool DescriptorPool;
     VkCommandPool VertexCommandPool;
 
-    std::vector<VkBuffer> UniformBuffers;
-    std::vector<VkDeviceMemory> UniformBuffersMemory;
-    std::vector<void*> UniformBuffersMapped;
-    std::vector<VkDescriptorSet> DescriptorSets;
+    //std::vector<VkBuffer> UniformBuffers;
+    //std::vector<VkDeviceMemory> UniformBuffersMemory;
+    //std::vector<void*> UniformBuffersMapped;
+    //std::vector<VkDescriptorSet> DescriptorSets;
 
     //Multisampling
     VkSampleCountFlagBits MSAASamples = VK_SAMPLE_COUNT_1_BIT;
@@ -188,4 +196,5 @@ private:
 
     Model Model_1;
     Model Model_2;
+    FlexCamera Camera;
 };

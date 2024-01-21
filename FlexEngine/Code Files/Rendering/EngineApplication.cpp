@@ -24,7 +24,6 @@
 #include "../FlexLibrary/Flextimer.h"
 #include "FXE_RendererManager.h"
 
-
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
 const bool debugMode = false;
@@ -66,8 +65,11 @@ void FlexEngine::initVulkan()
     create_LogicalDevice();
     create_SwapChain();
     create_ImageViews();
-    create_DescriptorSetLayout();
-    init_GraphicsPipeline(SwapChainImageFormat, DescriptorSetLayout);
+    for (Model* fxeModel : FXE::ModelManager)
+    {
+        create_DescriptorSetLayout(fxeModel);
+    }
+    init_GraphicsPipeline();
     create_CommandPool();
     create_ColorResources();
     create_DepthResources();
@@ -113,27 +115,31 @@ void FlexEngine::mainLoop()
 		}
 		if (glfwGetKey(TheWindow.Window, GLFW_KEY_S) == GLFW_PRESS)
 		{
-            forward += 0.01;
+            Camera.update_Camera(0.f, 0.01f, 0.f);
 		}
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_W) == GLFW_PRESS)
         {
-            forward -= 0.01;
+            Camera.update_Camera(0.f, -0.01f, 0.f);
         }
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_A) == GLFW_PRESS)
         {
-            right += 0.01;
+            Camera.update_Camera(0.01f, 0.f, 0.f);
         }
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_D) == GLFW_PRESS)
         {
-            right -= 0.01;
+            Camera.update_Camera(-0.01f, 0.f, 0.f);
         }
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_Q) == GLFW_PRESS)
         {
-            up += 0.01;
+            Camera.update_Camera(0.f, 0.f, 0.01f);
         }
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_E) == GLFW_PRESS)
         {
-            up -= 0.01;
+            Camera.update_Camera(0.f, 0.f, -0.01f);
+        }
+        if (glfwGetKey(TheWindow.Window, GLFW_KEY_R) == GLFW_PRESS)
+        {
+            Camera.turn_Around();
         }
 
         auto currentTime = std::chrono::high_resolution_clock::now();
@@ -499,22 +505,28 @@ bool FlexEngine::check_DeviceExtensionSupport(VkPhysicalDevice device)
     return requiredExtensions.empty();
 }
 
-void FlexEngine::init_GraphicsPipeline(VkFormat swapChainImageFormat, VkDescriptorSetLayout& descriptorSetLayout)
+void FlexEngine::init_GraphicsPipeline()
 {
     FlexTimer timer("Graphics pipeline initializing");
 
-    create_RenderPass(swapChainImageFormat);
-    create_GraphicsPipeline(descriptorSetLayout);
+    create_RenderPass(SwapChainImageFormat);
+    for (Model* fxeModel : FXE::ModelManager)
+    {
+        create_GraphicsPipeline(fxeModel);
+    }
 }
 
 void FlexEngine::cleanup_GraphicsPipeline()
 {
-    vkDestroyPipeline(Device, GraphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(Device, PipelineLayout, nullptr);
+	for (Model* fxeModel : FXE::ModelManager)
+	{
+        vkDestroyPipeline(Device, fxeModel->GraphicsPipeline, nullptr);
+        vkDestroyPipelineLayout(Device, fxeModel->PipelineLayout, nullptr);
+	}
     vkDestroyRenderPass(Device, RenderPass, nullptr);
 }
 
-void FlexEngine::create_GraphicsPipeline(VkDescriptorSetLayout& descriptorSetLayout)
+void FlexEngine::create_GraphicsPipeline(Model* fxeModel)
 {
     auto vertShaderCode = readFile("Code Files/Shader/vert.spv");
     auto fragShaderCode = readFile("Code Files/Shader/frag.spv");
@@ -623,11 +635,11 @@ void FlexEngine::create_GraphicsPipeline(VkDescriptorSetLayout& descriptorSetLay
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+    pipelineLayoutInfo.pSetLayouts = &fxeModel->DescriptorSetLayout;
     pipelineLayoutInfo.pushConstantRangeCount = 0;
     pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-    if (vkCreatePipelineLayout(Device, &pipelineLayoutInfo, nullptr, &PipelineLayout) != VK_SUCCESS)
+    if (vkCreatePipelineLayout(Device, &pipelineLayoutInfo, nullptr, &fxeModel->PipelineLayout) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create pipeline layout!");
     }
@@ -644,13 +656,13 @@ void FlexEngine::create_GraphicsPipeline(VkDescriptorSetLayout& descriptorSetLay
     pipelineInfo.pDepthStencilState = &depthStencilInfo;
     pipelineInfo.pColorBlendState = &colorBlendingInfo;
     pipelineInfo.pDynamicState = &dynamicStateInfo;
-    pipelineInfo.layout = PipelineLayout;
+    pipelineInfo.layout =fxeModel->PipelineLayout;
     pipelineInfo.renderPass = RenderPass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
 
-    if (vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &GraphicsPipeline) != VK_SUCCESS)
+    if (vkCreateGraphicsPipelines(Device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &fxeModel->GraphicsPipeline) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create graphics pipeline!");
     }
@@ -826,6 +838,7 @@ void FlexEngine::draw_Frame()
     }
 
     update_UniformBuffer(CurrentFrame);
+    update_UniformBuffer_2(CurrentFrame);
     vkResetFences(Device, 1, &InFlightFences[CurrentFrame]);
     vkResetCommandBuffer(CommandBuffers[CurrentFrame], 0);
     record_CommandBuffer(CommandBuffers[CurrentFrame], imageIndex);
@@ -1081,7 +1094,10 @@ void FlexEngine::record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     renderPassBeginInfo.pClearValues = clearValues.data();
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, GraphicsPipeline);
+    for (Model* fxeModel : FXE::ModelManager)
+    {
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, fxeModel->GraphicsPipeline);
+    }
 
     VkViewport viewport{};
     viewport.x = 0.0f;
@@ -1097,21 +1113,16 @@ void FlexEngine::record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     scissor.extent = SwapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    VkBuffer vertexBuffers[] = { Model_1.VertexBuffer };
-    VkDeviceSize offsets[] = { 0 };
-
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(commandBuffer, Model_1.IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0, 1,
-        &DescriptorSets[CurrentFrame], 0, nullptr);
-    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(Model_1.Indices.size()), 1, 0, 0, 0);
-
-    VkBuffer vertexBuffers_2[] = { Model_2.VertexBuffer };
-    VkDeviceSize offsets_2[] = { 0 };
-
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers_2, offsets_2);
-    vkCmdBindIndexBuffer(commandBuffer, Model_2.IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
-    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(Model_2.Indices.size()), 1, 0, 0, 0);
+    for (Model* fxeModel : FXE::ModelManager)
+    {
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, fxeModel->PipelineLayout, 0, 1,
+            &fxeModel->DescriptorSets[CurrentFrame], 0, nullptr);
+        VkBuffer vertexBuffers[] = { fxeModel->VertexBuffer };
+        VkDeviceSize offsets[] = { 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(commandBuffer, fxeModel->IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(fxeModel->Indices.size()), 1, 0, 0, 0);
+    }
 
     vkCmdEndRenderPass(commandBuffer);
 
@@ -1135,11 +1146,28 @@ void FlexEngine::update_UniformBuffer(uint32_t currentImage)
     }
     ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(static_cast<float>(rotateZAxes)), glm::vec3(0.0f, 0.0f, 1.0f)) * 
         glm::rotate(glm::mat4(1.0f), glm::radians(static_cast<float>(rotateYAxes)), glm::vec3(1.0f, 0.0f, 0.0f));
-    ubo.view = glm::lookAt(glm::vec3(right, forward, up), glm::vec3(right, 1.0f, up), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.view = glm::lookAt(Camera.CameraEye, Camera.CameraCenter, Camera.CameraUp);
     ubo.proj = glm::perspective(glm::radians(90.0f), static_cast<float>(SwapChainExtent.width) / static_cast<float>(SwapChainExtent.height), 0.1f, 100.0f);
     ubo.proj[1][1] *= -1;
 
-    memcpy(UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+    memcpy(Model_1.UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+}
+
+void FlexEngine::update_UniformBuffer_2(uint32_t currentImage)
+{
+    static auto startTime = std::chrono::high_resolution_clock::now();
+
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+    FXE::UniformBufferObject ubo{};
+    ubo.model = glm::mat4(glm::vec4(1.f, 0.f, 0.f, 0.f), glm::vec4(0.f, 1.f, 0.f, 0.f), glm::vec4(0.f, 0.f, 1.f, 0.f), glm::vec4(0.f, 0.f, 0.f, 1.f));
+    //ubo.model = glm::rotate(glm::mat4(1.0f), time*glm::radians(90.f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.view = glm::lookAt(Camera.CameraEye, Camera.CameraCenter, Camera.CameraUp);
+    ubo.proj = glm::perspective(glm::radians(90.0f), static_cast<float>(SwapChainExtent.width) / static_cast<float>(SwapChainExtent.height), 0.1f, 100.0f);
+    ubo.proj[1][1] *= -1;
+
+    memcpy(Model_2.UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
 VkSurfaceFormatKHR FlexEngine::choose_SwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableSurfaceFormats)
@@ -1453,34 +1481,32 @@ void FlexEngine::init_VertexBuffer()
         load_Model(fxeModel);
         create_VertexBuffer(fxeModel);
         create_IndexBuffer(fxeModel);
+        create_UniformBuffers(fxeModel);
+        create_DescriptorPool(fxeModel);
+        create_DescriptorSets(fxeModel);
     }
-    //create_VertexBuffer();
-    //create_VertexBuffer_2();
-    //create_IndexBuffer();
-    //create_IndexBuffer_2();
-    create_UniformBuffers();
-    create_DescriptorPool();
-    create_DescriptorSets();
 }
 
 void FlexEngine::cleanup_VertexBuffer()
 {
-    vkDestroyBuffer(Device, Model_1.IndexBuffer, nullptr);
-    vkFreeMemory(Device, Model_1.IndexBufferMemory, nullptr);
-    vkDestroyBuffer(Device, Model_1.VertexBuffer, nullptr);
-    vkFreeMemory(Device, Model_1.VertexBufferMemory, nullptr);
-    vkDestroyBuffer(Device, Model_2.IndexBuffer, nullptr);
-    vkFreeMemory(Device, Model_2.IndexBufferMemory, nullptr);
-    vkDestroyBuffer(Device, Model_2.VertexBuffer, nullptr);
-    vkFreeMemory(Device, Model_2.VertexBufferMemory, nullptr);
+	for (Model* fxeModel : FXE::ModelManager)
+	{
+        vkDestroyBuffer(Device, fxeModel->IndexBuffer, nullptr);
+        vkFreeMemory(Device, fxeModel->IndexBufferMemory, nullptr);
+        vkDestroyBuffer(Device, fxeModel->VertexBuffer, nullptr);
+        vkFreeMemory(Device, fxeModel->VertexBufferMemory, nullptr);
+	}
 
     vkDestroyCommandPool(Device, VertexCommandPool, nullptr);
-    vkDestroyDescriptorPool(Device, DescriptorPool, nullptr);
-    vkDestroyDescriptorSetLayout(Device, DescriptorSetLayout, nullptr);
-    for (uint32_t i = 0; i < MaxFramesInFlight; i++)
+    for (Model* fxeModel : FXE::ModelManager)
     {
-        vkDestroyBuffer(Device, UniformBuffers[i], nullptr);
-        vkFreeMemory(Device, UniformBuffersMemory[i], nullptr);
+        vkDestroyDescriptorPool(Device, fxeModel->DescriptorPool, nullptr);
+        vkDestroyDescriptorSetLayout(Device, fxeModel->DescriptorSetLayout, nullptr);
+        for (uint32_t i = 0; i < MaxFramesInFlight; i++)
+        {
+            vkDestroyBuffer(Device, fxeModel->UniformBuffers[i], nullptr);
+            vkFreeMemory(Device, fxeModel->UniformBuffersMemory[i], nullptr);
+        }
     }
 }
 
@@ -1546,7 +1572,7 @@ void FlexEngine::create_IndexBuffer(Model* modelPtr)
     vkFreeMemory(Device, stagingBufferMemory, nullptr);
 }
 
-void FlexEngine::create_DescriptorSetLayout()
+void FlexEngine::create_DescriptorSetLayout(Model* fxeModel)
 {
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
     uboLayoutBinding.binding = 0;
@@ -1568,30 +1594,30 @@ void FlexEngine::create_DescriptorSetLayout()
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
     layoutInfo.pBindings = bindings.data();
 
-    if (vkCreateDescriptorSetLayout(Device, &layoutInfo, nullptr, &DescriptorSetLayout) != VK_SUCCESS)
+    if (vkCreateDescriptorSetLayout(Device, &layoutInfo, nullptr, &fxeModel->DescriptorSetLayout) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create descriptor set layout!");
     }
 }
 
-void FlexEngine::create_UniformBuffers()
+void FlexEngine::create_UniformBuffers(Model* fxeModel)
 {
     VkDeviceSize bufferSize = sizeof(FXE::UniformBufferObject);
 
-    UniformBuffers.resize(MaxFramesInFlight);
-    UniformBuffersMemory.resize(MaxFramesInFlight);
-    UniformBuffersMapped.resize(MaxFramesInFlight);
+    fxeModel->UniformBuffers.resize(MaxFramesInFlight);
+    fxeModel->UniformBuffersMemory.resize(MaxFramesInFlight);
+    fxeModel->UniformBuffersMapped.resize(MaxFramesInFlight);
 
     for (uint32_t i = 0; i < MaxFramesInFlight; i++)
     {
         create_Buffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, UniformBuffers[i], UniformBuffersMemory[i]);
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, fxeModel->UniformBuffers[i], fxeModel->UniformBuffersMemory[i]);
 
-        vkMapMemory(Device, UniformBuffersMemory[i], 0, bufferSize, 0, &UniformBuffersMapped[i]);
+        vkMapMemory(Device, fxeModel->UniformBuffersMemory[i], 0, bufferSize, 0, &fxeModel->UniformBuffersMapped[i]);
     }
 }
 
-void FlexEngine::create_DescriptorPool()
+void FlexEngine::create_DescriptorPool(Model* fxeModel)
 {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1605,23 +1631,23 @@ void FlexEngine::create_DescriptorPool()
     poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = MaxFramesInFlight;
 
-    if (vkCreateDescriptorPool(Device, &poolInfo, nullptr, &DescriptorPool) != VK_SUCCESS)
+    if (vkCreateDescriptorPool(Device, &poolInfo, nullptr, &fxeModel->DescriptorPool) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create descriptor pool!");
     }
 }
 
-void FlexEngine::create_DescriptorSets()
+void FlexEngine::create_DescriptorSets(Model* fxeModel)
 {
-    std::vector<VkDescriptorSetLayout> layouts(MaxFramesInFlight, DescriptorSetLayout);
+    std::vector<VkDescriptorSetLayout> layouts(MaxFramesInFlight, fxeModel->DescriptorSetLayout);
     VkDescriptorSetAllocateInfo allocDescriptorInfo{};
     allocDescriptorInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocDescriptorInfo.descriptorPool = DescriptorPool;
+    allocDescriptorInfo.descriptorPool = fxeModel->DescriptorPool;
     allocDescriptorInfo.descriptorSetCount = MaxFramesInFlight;
     allocDescriptorInfo.pSetLayouts = layouts.data();
 
-    DescriptorSets.resize(MaxFramesInFlight);
-    if (vkAllocateDescriptorSets(Device, &allocDescriptorInfo, DescriptorSets.data()) != VK_SUCCESS)
+    fxeModel->DescriptorSets.resize(MaxFramesInFlight);
+    if (vkAllocateDescriptorSets(Device, &allocDescriptorInfo, fxeModel->DescriptorSets.data()) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to allocate descriptor sets!");
     }
@@ -1629,7 +1655,7 @@ void FlexEngine::create_DescriptorSets()
     for (uint32_t i = 0; i < MaxFramesInFlight; i++)
     {
         VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = UniformBuffers[i];
+        bufferInfo.buffer = fxeModel->UniformBuffers[i];
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(FXE::UniformBufferObject);
 
@@ -1641,7 +1667,7 @@ void FlexEngine::create_DescriptorSets()
         std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[0].dstSet = DescriptorSets[i];
+        descriptorWrites[0].dstSet = fxeModel->DescriptorSets[i];
         descriptorWrites[0].dstBinding = 0;
         descriptorWrites[0].dstArrayElement = 0;
         descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1649,7 +1675,7 @@ void FlexEngine::create_DescriptorSets()
         descriptorWrites[0].pBufferInfo = &bufferInfo;
 
         descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[1].dstSet = DescriptorSets[i];
+        descriptorWrites[1].dstSet = fxeModel->DescriptorSets[i];
         descriptorWrites[1].dstBinding = 1;
         descriptorWrites[1].dstArrayElement = 0;
         descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;

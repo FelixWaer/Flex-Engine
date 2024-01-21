@@ -24,6 +24,7 @@
     <ClCompile Include="Code Files\FXE_Window.cpp" />
     <ClCompile Include="Code Files\main.cpp" />
     <ClCompile Include="Code Files\Rendering\EngineApplication.cpp" />
+    <ClCompile Include="Code Files\Rendering\FXE_Camera.cpp" />
     <ClCompile Include="Code Files\Rendering\FXE_Model.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -36,6 +37,7 @@
     <ClInclude Include="Code Files\FXE_DebugMessenger.h" />
     <ClInclude Include="Code Files\FXE_Window.h" />
     <ClInclude Include="Code Files\Rendering\EngineApplication.h" />
+    <ClInclude Include="Code Files\Rendering\FXE_Camera.h" />
     <ClInclude Include="Code Files\Rendering\FXE_Model.h" />
     <ClInclude Include="Code Files\Rendering\FXE_RendererManager.h" />
   </ItemGroup>
