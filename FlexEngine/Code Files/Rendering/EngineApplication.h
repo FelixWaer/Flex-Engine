@@ -83,8 +83,6 @@ private:
 
     void recreate_SwapChain();
     void record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-    void update_UniformBuffer(uint32_t currentImage);
-    void update_UniformBuffer_2(uint32_t currentImage);
 
     static VkSurfaceFormatKHR choose_SwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableSurfaceFormats);
     static VkPresentModeKHR choose_SwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
@@ -187,8 +185,9 @@ private:
     VkImageView ColorImageView;
 
     //Other Variables
-    const uint32_t WIDTH = 800;
-    const uint32_t HEIGHT = 600;
+    static const uint32_t WIDTH = 800;
+    static const uint32_t HEIGHT = 600;
+
     const std::string Model_Path = "Code Files/Models/pen.obj";
     const std::string Texture_Path = "Code Files/Textures/texture2.jpg";
     const std::string Model_Path_2 = "Code Files/Models/viking_room.obj";
@@ -196,5 +195,4 @@ private:
 
     Model Model_1;
     Model Model_2;
-    FlexCamera Camera;
 };

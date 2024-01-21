@@ -2,7 +2,10 @@
 #include <string>
 #include <vector>
 
+#include <glm/glm.hpp>
+
 #include "../FXE_ExtraFunctions.h"
+
 
 class Model
 {
@@ -32,6 +35,12 @@ public:
 	VkPipeline GraphicsPipeline;
 	VkPipelineLayout PipelineLayout;
 
-	void update_Uniformbuffer();
+	glm::vec3 get_Position();
+	glm::vec3 get_Rotation();
+	void update_Position(const glm::vec3& positionVector);
+	void update_Rotation(const glm::vec3& rotationVector);
+	void update_UniformBuffer();
 private:
+	glm::vec3 ModelPosition;
+	glm::vec3 ModelRotation;
 };

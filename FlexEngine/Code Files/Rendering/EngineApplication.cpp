@@ -37,11 +37,8 @@ double Ypos = 0;
 double tempXpos = 0.f;
 double tempYpos = 0.f;
 
-float forward = 5.0f;
-float right = 0.f;
-float up = 0.f;
 float rotateZAxes = 0.f;
-float rotateYAxes = 0.f;
+float rotateXAxes = 0.f;
 /*---------------------------------*/
 /*----------Const Vector-----------*/
 /*---------------------------------*/
@@ -57,6 +54,8 @@ void FlexEngine::initVulkan()
 {
     FlexTimer timer("Vulkan Initializing");
     Model_2.Model_Path = Model_Path_2;
+    Model_1.update_Position(glm::vec3(0.f, 0.f, 0.f));
+    Model_2.update_Position(glm::vec3(20.f, -10.f, 0.f));
 
     create_Instance();
     TheDebugMessenger.setup_DebugMessenger(Instance);
@@ -104,42 +103,44 @@ void FlexEngine::mainLoop()
             }
             if (Ypos > tempYpos)
             {
-                rotateYAxes += 1.f;
+                rotateXAxes += 1.f;
             }
             if (Ypos < tempYpos)
             {
-                rotateYAxes -= 1.f;
+                rotateXAxes -= 1.f;
             }
             tempXpos = Xpos;
             tempYpos = Ypos;
+
+            Model_1.update_Rotation(glm::vec3(rotateXAxes, 0.f, rotateZAxes));
 		}
 		if (glfwGetKey(TheWindow.Window, GLFW_KEY_S) == GLFW_PRESS)
 		{
-            Camera.update_Camera(0.f, 0.01f, 0.f);
+            FXE::Camera.update_Camera(0.f, 0.01f, 0.f);
 		}
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_W) == GLFW_PRESS)
         {
-            Camera.update_Camera(0.f, -0.01f, 0.f);
+            FXE::Camera.update_Camera(0.f, -0.01f, 0.f);
         }
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_A) == GLFW_PRESS)
         {
-            Camera.update_Camera(0.01f, 0.f, 0.f);
+            FXE::Camera.update_Camera(0.01f, 0.f, 0.f);
         }
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_D) == GLFW_PRESS)
         {
-            Camera.update_Camera(-0.01f, 0.f, 0.f);
+            FXE::Camera.update_Camera(-0.01f, 0.f, 0.f);
         }
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_Q) == GLFW_PRESS)
         {
-            Camera.update_Camera(0.f, 0.f, 0.01f);
+            FXE::Camera.update_Camera(0.f, 0.f, 0.01f);
         }
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_E) == GLFW_PRESS)
         {
-            Camera.update_Camera(0.f, 0.f, -0.01f);
+            FXE::Camera.update_Camera(0.f, 0.f, -0.01f);
         }
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_R) == GLFW_PRESS)
         {
-            Camera.turn_Around();
+            FXE::Camera.turn_Around();
         }
 
         auto currentTime = std::chrono::high_resolution_clock::now();
@@ -837,8 +838,9 @@ void FlexEngine::draw_Frame()
         throw std::runtime_error("failed to acquire swap chain image!");
     }
 
-    update_UniformBuffer(CurrentFrame);
-    update_UniformBuffer_2(CurrentFrame);
+    Model_1.update_UniformBuffer();
+    Model_2.update_UniformBuffer();
+
     vkResetFences(Device, 1, &InFlightFences[CurrentFrame]);
     vkResetCommandBuffer(CommandBuffers[CurrentFrame], 0);
     record_CommandBuffer(CommandBuffers[CurrentFrame], imageIndex);
@@ -886,6 +888,7 @@ void FlexEngine::draw_Frame()
     }
 
     CurrentFrame = (CurrentFrame + 1) % MaxFramesInFlight;
+    FXE::CurrentFrame = (CurrentFrame + 1) % MaxFramesInFlight;
 }
 
 void FlexEngine::create_SwapChain()
@@ -946,6 +949,9 @@ void FlexEngine::create_SwapChain()
 
     SwapChainImageFormat = surfaceFormat.format;
     SwapChainExtent = extent;
+
+    FXE::Width = SwapChainExtent.width;
+    FXE::Height = SwapChainExtent.height;
 }
 
 void FlexEngine::create_ImageViews()
@@ -1130,44 +1136,6 @@ void FlexEngine::record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     {
         throw std::runtime_error("failed to record command buffer!");
     }
-}
-
-void FlexEngine::update_UniformBuffer(uint32_t currentImage)
-{
-    static auto startTime = std::chrono::high_resolution_clock::now();
-
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-    FXE::UniformBufferObject ubo{};
-    if (forward <= 1.0f)
-    {
-        forward = 1.0f;
-    }
-    ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(static_cast<float>(rotateZAxes)), glm::vec3(0.0f, 0.0f, 1.0f)) * 
-        glm::rotate(glm::mat4(1.0f), glm::radians(static_cast<float>(rotateYAxes)), glm::vec3(1.0f, 0.0f, 0.0f));
-    ubo.view = glm::lookAt(Camera.CameraEye, Camera.CameraCenter, Camera.CameraUp);
-    ubo.proj = glm::perspective(glm::radians(90.0f), static_cast<float>(SwapChainExtent.width) / static_cast<float>(SwapChainExtent.height), 0.1f, 100.0f);
-    ubo.proj[1][1] *= -1;
-
-    memcpy(Model_1.UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
-}
-
-void FlexEngine::update_UniformBuffer_2(uint32_t currentImage)
-{
-    static auto startTime = std::chrono::high_resolution_clock::now();
-
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-    FXE::UniformBufferObject ubo{};
-    ubo.model = glm::mat4(glm::vec4(1.f, 0.f, 0.f, 0.f), glm::vec4(0.f, 1.f, 0.f, 0.f), glm::vec4(0.f, 0.f, 1.f, 0.f), glm::vec4(0.f, 0.f, 0.f, 1.f));
-    //ubo.model = glm::rotate(glm::mat4(1.0f), time*glm::radians(90.f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.view = glm::lookAt(Camera.CameraEye, Camera.CameraCenter, Camera.CameraUp);
-    ubo.proj = glm::perspective(glm::radians(90.0f), static_cast<float>(SwapChainExtent.width) / static_cast<float>(SwapChainExtent.height), 0.1f, 100.0f);
-    ubo.proj[1][1] *= -1;
-
-    memcpy(Model_2.UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
 VkSurfaceFormatKHR FlexEngine::choose_SwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableSurfaceFormats)

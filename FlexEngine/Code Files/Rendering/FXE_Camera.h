@@ -6,10 +6,6 @@ class FlexCamera
 public:
 	FlexCamera() = default;
 
-	glm::vec3 CameraEye = glm::vec3(0.0f, 5.0f, 0.0f);
-	glm::vec3 CameraCenter = glm::vec3(0.0f, 1.0f, 0.0f);
-	glm::vec3 CameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
-
 	void update_Camera(float right, float forward, float up)
 	{
 		CameraEye.x += right;
@@ -25,6 +21,12 @@ public:
 		CameraUp.z *= -1;
 	}
 
-private:
+	void rotate_Camera();
 
+	glm::mat4 get_CameraView();
+
+private:
+	glm::vec3 CameraEye = glm::vec3(0.0f, 5.0f, 0.0f);
+	glm::vec3 CameraCenter = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 CameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
 };
