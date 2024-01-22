@@ -39,6 +39,26 @@ double tempYpos = 0.f;
 
 float rotateZAxes = 0.f;
 float rotateXAxes = 0.f;
+float constanRotation = 0.f;
+
+float DeltaTime = 0.0f;
+bool ScrollingUp = false;
+bool ScrollingDown = false;
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	if (yoffset > 0)
+	{
+        ScrollingUp = true;
+	}
+	if (yoffset < 0)
+	{
+        ScrollingDown = true;
+	}
+}
+
 /*---------------------------------*/
 /*----------Const Vector-----------*/
 /*---------------------------------*/
@@ -55,7 +75,9 @@ void FlexEngine::initVulkan()
     FlexTimer timer("Vulkan Initializing");
     Model_2.Model_Path = Model_Path_2;
     Model_1.update_Position(glm::vec3(0.f, 0.f, 0.f));
+    Model_1.update_Position(glm::vec3(10.f, 0.f, 0.f));
     Model_2.update_Position(glm::vec3(20.f, -10.f, 0.f));
+    Model_3.update_Position(glm::vec3(0.0f, 0.0f, 20.f));
 
     create_Instance();
     TheDebugMessenger.setup_DebugMessenger(Instance);
@@ -89,64 +111,75 @@ void FlexEngine::mainLoop()
 
 		glfwPollEvents();
         draw_Frame();
+        constanRotation += 0.1;
 		if (glfwGetMouseButton(TheWindow.Window, 0) == GLFW_PRESS)
 		{
             glfwGetCursorPos(TheWindow.Window, &Xpos, &Ypos);
 
             if (Xpos > tempXpos)
             {
-                rotateZAxes += 1.f;
+                rotateZAxes += 1.f*DeltaTime;
             }
             if (Xpos < tempXpos)
             {
-                rotateZAxes -= 1.f;
+                rotateZAxes -= 1.f*DeltaTime;
             }
             if (Ypos > tempYpos)
             {
-                rotateXAxes += 1.f;
+                rotateXAxes += 1.f*DeltaTime;
             }
             if (Ypos < tempYpos)
             {
-                rotateXAxes -= 1.f;
+                rotateXAxes -= 1.f*DeltaTime;
             }
             tempXpos = Xpos;
             tempYpos = Ypos;
 
             Model_1.update_Rotation(glm::vec3(rotateXAxes, 0.f, rotateZAxes));
 		}
+        
+        glfwSetScrollCallback(TheWindow.Window, scroll_callback);
+
+        if (ScrollingUp == true)
+        {
+            FXE::Camera.update_CameraDistance(-1.f * DeltaTime);
+            ScrollingUp = false;
+        }
+        else if(ScrollingDown == true)
+        {
+            FXE::Camera.update_CameraDistance(1.f * DeltaTime);
+            ScrollingDown = false;
+        }
+
 		if (glfwGetKey(TheWindow.Window, GLFW_KEY_S) == GLFW_PRESS)
 		{
-            FXE::Camera.update_Camera(0.f, 0.01f, 0.f);
+            FXE::Camera.update_Camera(glm::vec3(0.f, 0.1f*DeltaTime, 0.f));
 		}
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_W) == GLFW_PRESS)
         {
-            FXE::Camera.update_Camera(0.f, -0.01f, 0.f);
+            FXE::Camera.update_Camera(glm::vec3(0.0f, -0.1f*DeltaTime, 0.f));
         }
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_A) == GLFW_PRESS)
         {
-            FXE::Camera.update_Camera(0.01f, 0.f, 0.f);
+            FXE::Camera.update_Camera(glm::vec3(0.1f*DeltaTime, 0.f, 0.f));
         }
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_D) == GLFW_PRESS)
         {
-            FXE::Camera.update_Camera(-0.01f, 0.f, 0.f);
+            FXE::Camera.update_Camera(glm::vec3(-0.1f*DeltaTime, 0.f, 0.f));
         }
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_Q) == GLFW_PRESS)
         {
-            FXE::Camera.update_Camera(0.f, 0.f, 0.01f);
+            FXE::Camera.update_Camera(glm::vec3(0.f, 0.f, 0.1f*DeltaTime));
         }
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_E) == GLFW_PRESS)
         {
-            FXE::Camera.update_Camera(0.f, 0.f, -0.01f);
-        }
-        if (glfwGetKey(TheWindow.Window, GLFW_KEY_R) == GLFW_PRESS)
-        {
-            FXE::Camera.turn_Around();
+            FXE::Camera.update_Camera(glm::vec3(0.f, 0.f, -0.1f*DeltaTime));
         }
 
         auto currentTime = std::chrono::high_resolution_clock::now();
         
-        float time = std::chrono::duration<float, std::chrono::milliseconds::period>(currentTime - startTime).count();
-        //std::cout << 1000.f/time << std::endl;
+        DeltaTime = std::chrono::duration<float, std::chrono::milliseconds::period>(currentTime - startTime).count();
+        //Model_1.update_Rotation(glm::vec3(constantRotation, 0.0f, 0.0f));
 	}
     vkDeviceWaitIdle(Device);
 }
@@ -838,8 +871,10 @@ void FlexEngine::draw_Frame()
         throw std::runtime_error("failed to acquire swap chain image!");
     }
 
-    Model_1.update_UniformBuffer();
-    Model_2.update_UniformBuffer();
+    for (Model* fxeModel : FXE::ModelManager)
+    {
+        fxeModel->update_UniformBuffer();
+    }
 
     vkResetFences(Device, 1, &InFlightFences[CurrentFrame]);
     vkResetCommandBuffer(CommandBuffers[CurrentFrame], 0);
