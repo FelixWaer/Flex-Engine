@@ -27,6 +27,8 @@
     <ClCompile Include="Code Files\Rendering\FXE_Camera.cpp" />
     <ClCompile Include="Code Files\Rendering\FXE_Model.cpp" />
     <ClCompile Include="Code Files\Rendering\Modules\FlexBuffer.cpp" />
+    <ClCompile Include="Code Files\Rendering\Modules\FXE_Mesh.cpp" />
+    <ClCompile Include="Code Files\Rendering\Modules\FXE_Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Code Files\Shader\Vertex_Shader.frag" />
@@ -42,6 +44,8 @@
     <ClInclude Include="Code Files\Rendering\FXE_Model.h" />
     <ClInclude Include="Code Files\Rendering\FXE_RendererManager.h" />
     <ClInclude Include="Code Files\Rendering\Modules\FlexBuffer.h" />
+    <ClInclude Include="Code Files\Rendering\Modules\FXE_Mesh.h" />
+    <ClInclude Include="Code Files\Rendering\Modules\FXE_Texture.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

@@ -43,6 +43,12 @@
     <ClCompile Include="Code Files\Rendering\Modules\FlexBuffer.cpp">
       <Filter>Source Files\Rendering\Modules</Filter>
     </ClCompile>
+    <ClCompile Include="Code Files\Rendering\Modules\FXE_Mesh.cpp">
+      <Filter>Source Files\Rendering\Modules</Filter>
+    </ClCompile>
+    <ClCompile Include="Code Files\Rendering\Modules\FXE_Texture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Code Files\Shader\Vertex_Shader.frag">
@@ -80,5 +86,9 @@
     <ClInclude Include="Code Files\Rendering\Modules\FlexBuffer.h">
       <Filter>Source Files\Rendering\Modules</Filter>
     </ClInclude>
+    <ClInclude Include="Code Files\Rendering\Modules\FXE_Mesh.h">
+      <Filter>Source Files\Rendering\Modules</Filter>
+    </ClInclude>
+    <ClInclude Include="Code Files\Rendering\Modules\FXE_Texture.h" />
   </ItemGroup>
 </Project>

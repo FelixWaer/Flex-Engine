@@ -15,8 +15,6 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
 #include <glm/glm.hpp>
 
 
@@ -73,7 +71,11 @@ const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_N
 void FlexEngine::initVulkan()
 {
     FlexTimer timer("Vulkan Initializing");
-    Model_2.Model_Path = Model_Path_2;
+
+    Model_1.MeshPtr = &Mesh_1;
+    Model_3.MeshPtr = &Mesh_1;
+    Model_2.MeshPtr = &Mesh_2;
+
     Model_1.update_Position(glm::vec3(0.f, 0.f, 0.f));
     Model_1.update_Position(glm::vec3(10.f, 0.f, 0.f));
     Model_2.update_Position(glm::vec3(20.f, -10.f, 0.f));
@@ -1012,11 +1014,11 @@ void FlexEngine::record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
 
         vkCmdPushConstants(CommandBuffers[CurrentFrame], GlobalGraphicsPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(testcolor), &testcolor2);
 
-        VkBuffer vertexBuffers[] = { fxeModel->VertexBuffer };
+        VkBuffer vertexBuffers[] = { fxeModel->MeshPtr->VertexBuffer };
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, fxeModel->IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(fxeModel->Indices.size()), 1, 0, 0, 0);
+        vkCmdBindIndexBuffer(commandBuffer, fxeModel->MeshPtr->IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(fxeModel->MeshPtr->Indices.size()), 1, 0, 0, 0);
     }
 
     vkCmdEndRenderPass(commandBuffer);
@@ -1333,23 +1335,39 @@ void FlexEngine::generate_Mipmaps(VkImage texImage, VkFormat imageFormat, int32_
 void FlexEngine::init_VertexBuffer()
 {
     create_VertexCommandPool();
-    for (Model* fxeModel : FXE::ModelManager)
-    {
-        load_Model(fxeModel);
-        create_VertexBuffer(fxeModel);
-        create_IndexBuffer(fxeModel);
-    }
+    Mesh_1.init_Mesh("Code Files/Models/pen.obj");
+    Mesh_2.init_Mesh("Code Files/Models/viking_room.obj");
+    create_MeshVertexBuffer(&Mesh_1);
+    create_MeshIndexBuffer(&Mesh_1);
+    create_MeshVertexBuffer(&Mesh_2);
+    create_MeshIndexBuffer(&Mesh_2);
+    
+    //for (Model* fxeModel : FXE::ModelManager)
+    //{
+    //    load_Model(fxeModel);
+    //    create_VertexBuffer(fxeModel);
+    //    create_IndexBuffer(fxeModel);
+    //}
 }
 
 void FlexEngine::cleanup_VertexBuffer()
 {
-	for (Model* fxeModel : FXE::ModelManager)
-	{
-        vkDestroyBuffer(Device, fxeModel->IndexBuffer, nullptr);
-        vkFreeMemory(Device, fxeModel->IndexBufferMemory, nullptr);
-        vkDestroyBuffer(Device, fxeModel->VertexBuffer, nullptr);
-        vkFreeMemory(Device, fxeModel->VertexBufferMemory, nullptr);
-	}
+	//for (Model* fxeModel : FXE::ModelManager)
+	//{
+ //       vkDestroyBuffer(Device, fxeModel->IndexBuffer, nullptr);
+ //       vkFreeMemory(Device, fxeModel->IndexBufferMemory, nullptr);
+ //       vkDestroyBuffer(Device, fxeModel->VertexBuffer, nullptr);
+ //       vkFreeMemory(Device, fxeModel->VertexBufferMemory, nullptr);
+	//}
+
+	vkDestroyBuffer(Device, Mesh_1.IndexBuffer, nullptr);
+	vkFreeMemory(Device, Mesh_1.IndexBufferMemory, nullptr);
+	vkDestroyBuffer(Device, Mesh_1.VertexBuffer, nullptr);
+	vkFreeMemory(Device, Mesh_1.VertexBufferMemory, nullptr);
+    vkDestroyBuffer(Device, Mesh_2.IndexBuffer, nullptr);
+    vkFreeMemory(Device, Mesh_2.IndexBufferMemory, nullptr);
+    vkDestroyBuffer(Device, Mesh_2.VertexBuffer, nullptr);
+    vkFreeMemory(Device, Mesh_2.VertexBufferMemory, nullptr);
 
     vkDestroyCommandPool(Device, VertexCommandPool, nullptr);
     vkDestroyDescriptorPool(Device, GlobalDescriptorPool, nullptr);
@@ -1376,9 +1394,9 @@ void FlexEngine::create_VertexCommandPool()
     }
 }
 
-void FlexEngine::create_VertexBuffer(Model* modelPtr)
+void FlexEngine::create_MeshVertexBuffer(FlexMesh* fxeMesh)
 {
-    VkDeviceSize bufferSize = sizeof(modelPtr->Vertices[0]) * modelPtr->Vertices.size();
+    VkDeviceSize bufferSize = sizeof(fxeMesh->Vertices[0]) * fxeMesh->Vertices.size();
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -1388,20 +1406,20 @@ void FlexEngine::create_VertexBuffer(Model* modelPtr)
 
     void* data;
     vkMapMemory(Device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, modelPtr->Vertices.data(), bufferSize);
+    memcpy(data, fxeMesh->Vertices.data(), bufferSize);
     vkUnmapMemory(Device, stagingBufferMemory);
 
-    create_Buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, modelPtr->VertexBuffer, modelPtr->VertexBufferMemory);
+    create_Buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, fxeMesh->VertexBuffer, fxeMesh->VertexBufferMemory);
 
-    copy_Buffer(stagingBuffer, modelPtr->VertexBuffer, bufferSize);
+    copy_Buffer(stagingBuffer, fxeMesh->VertexBuffer, bufferSize);
 
     vkDestroyBuffer(Device, stagingBuffer, nullptr);
     vkFreeMemory(Device, stagingBufferMemory, nullptr);
 }
 
-void FlexEngine::create_IndexBuffer(Model* modelPtr)
+void FlexEngine::create_MeshIndexBuffer(FlexMesh* fxeMesh)
 {
-    VkDeviceSize bufferSize = sizeof(modelPtr->Indices[0]) * modelPtr->Indices.size();
+    VkDeviceSize bufferSize = sizeof(fxeMesh->Indices[0]) * fxeMesh->Indices.size();
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -1411,13 +1429,13 @@ void FlexEngine::create_IndexBuffer(Model* modelPtr)
 
     void* data;
     vkMapMemory(Device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, modelPtr->Indices.data(), bufferSize);
+    memcpy(data, fxeMesh->Indices.data(), bufferSize);
     vkUnmapMemory(Device, stagingBufferMemory);
 
     create_Buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, modelPtr->IndexBuffer, modelPtr->IndexBufferMemory);
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, fxeMesh->IndexBuffer, fxeMesh->IndexBufferMemory);
 
-    copy_Buffer(stagingBuffer, modelPtr->IndexBuffer, bufferSize);
+    copy_Buffer(stagingBuffer, fxeMesh->IndexBuffer, bufferSize);
 
     vkDestroyBuffer(Device, stagingBuffer, nullptr);
     vkFreeMemory(Device, stagingBufferMemory, nullptr);
@@ -1434,52 +1452,6 @@ void FlexEngine::copy_Buffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSiz
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
     end_SingleTimeCommands(commandBuffer);
-}
-
-void FlexEngine::load_Model(Model* modelPtr)
-{
-    FlexTimer timer("Model loading");
-
-    tinyobj::attrib_t attribute;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-    std::string warning, error;
-
-    if (!tinyobj::LoadObj(&attribute, &shapes, &materials, &warning, &error, modelPtr->Model_Path.c_str()))
-    {
-        throw std::runtime_error(warning + error);
-    }
-
-    std::unordered_map<FXE::Vertex, uint32_t> uniqueVertices{};
-
-    for (const auto& shape : shapes)
-    {
-        for (const auto& index : shape.mesh.indices)
-        {
-            FXE::Vertex vertex{};
-
-            vertex.pos = {
-                attribute.vertices[3 * index.vertex_index + 0],
-                attribute.vertices[3 * index.vertex_index + 1],
-                attribute.vertices[3 * index.vertex_index + 2]
-            };
-
-            vertex.texCoordinates = {
-                attribute.texcoords[2 * index.texcoord_index + 0],
-                1.0f - attribute.texcoords[2 * index.texcoord_index + 1]
-            };
-
-            vertex.color = { 1.0f, 1.0f, 1.0f };
-
-            if (uniqueVertices.contains(vertex) == 0)
-            {
-                uniqueVertices[vertex] = static_cast<uint32_t>(modelPtr->Vertices.size());
-                modelPtr->Vertices.push_back(vertex);
-            }
-
-            modelPtr->Indices.push_back(uniqueVertices[vertex]);
-        }
-    }
 }
 
 
@@ -1860,7 +1832,7 @@ void FlexEngine::update_UboBuffer()
     UniformBufferObject ubo{};
 
     ubo.view = FXE::Camera.get_CameraView();
-    ubo.proj = glm::perspective(glm::radians(90.0f), static_cast<float>(FXE::Width) / static_cast<float>(FXE::Height), 0.1f, 100.0f);
+    ubo.proj = FXE::Camera.get_CameraProjection();
     ubo.proj[1][1] *= -1;
 
     memcpy(UboBufferMapped[FXE::CurrentFrame], &ubo, sizeof(ubo));

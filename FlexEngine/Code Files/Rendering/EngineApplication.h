@@ -16,6 +16,7 @@
 #include "../FXE_ExtraFunctions.h"
 #include "FXE_Model.h"
 #include "FXE_Camera.h"
+#include "Modules/FXE_Mesh.h"
 
 struct MeshPushConstants
 {
@@ -115,13 +116,12 @@ private:
     void cleanup_VertexBuffer();
 
     void create_VertexCommandPool();
-    void load_Model(Model* modelPtr);
-    void create_VertexBuffer(Model* modelPtr);
-    void create_IndexBuffer(Model* modelPtr);
-    //void create_DescriptorSetLayout(Model* fxeModel);
-    //void create_UniformBuffers(Model* fxeModel);
-    //void create_DescriptorPool(Model* fxeModel);
-    //void create_DescriptorSets(Model* fxeModel);
+    //void load_Model(Model* modelPtr);
+    //void create_VertexBuffer(Model* modelPtr);
+    //void create_IndexBuffer(Model* modelPtr);
+
+    void create_MeshVertexBuffer(FlexMesh* fxeMesh);
+    void create_MeshIndexBuffer(FlexMesh* fxeMesh);
 
     void copy_Buffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     void create_Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
@@ -224,4 +224,7 @@ private:
     Model Model_1;
     Model Model_2;
     Model Model_3;
+
+    FlexMesh Mesh_1;
+    FlexMesh Mesh_2;
 };

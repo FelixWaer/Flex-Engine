@@ -1,6 +1,7 @@
 #include "FXE_Camera.h"
 
 #include <glm/ext/matrix_transform.hpp>
+#include "FXE_RendererManager.h"
 
 void FlexCamera::update_Camera(glm::vec3 positionVector)
 {
@@ -23,4 +24,9 @@ void FlexCamera::update_CameraDistance(float distance)
 glm::mat4 FlexCamera::get_CameraView()
 {
 	return glm::lookAt(CameraEye, CameraCenter, CameraUp);
+}
+
+glm::mat4 FlexCamera::get_CameraProjection()
+{
+	return glm::perspective(glm::radians(90.0f), static_cast<float>(FXE::Width) / static_cast<float>(FXE::Height), 0.1f, 100.0f);
 }

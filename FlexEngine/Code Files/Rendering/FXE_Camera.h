@@ -10,6 +10,7 @@ public:
 	void update_CameraDistance(float distance);
 
 	glm::mat4 get_CameraView();
+	glm::mat4 get_CameraProjection();
 
 private:
 	glm::vec3 CameraEye = glm::vec3(0.0f, 5.0f, 0.0f);
