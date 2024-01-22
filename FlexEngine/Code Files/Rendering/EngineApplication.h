@@ -28,6 +28,7 @@ struct testcolor
 {
     glm::mat4 model;
     glm::vec4 color;
+    int textureIndex;
 };
 
 struct UniformBufferObject
@@ -103,9 +104,9 @@ private:
     //Texture Image Methods
     void cleanup_TextureImage();
 
-    void create_TextureImage(const std::string& texturePath);
+    void create_TextureImage(const std::string& texturePath, VkImage* textureImage, VkDeviceMemory* textureMemory);
     void create_TextureImageView();
-    void create_TextureSampler();
+    void create_TextureSampler(VkSampler* textureSampler);
 
     void transition_ImageLayout(VkImage image, VkFormat format, VkImageLayout oldImageLayout, VkImageLayout newImageLayout, uint32_t mipLevels);
     void copy_BufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
@@ -176,6 +177,10 @@ private:
     VkDeviceMemory TextureImageMemory;
     VkImageView TextureImageView;
     VkSampler TextureSampler;
+    VkImage TextureImage_2;
+    VkDeviceMemory TextureImageMemory_2;
+    VkImageView TextureImageView_2;
+    VkSampler TextureSampler_2;
 
     uint32_t MipLevels;
 
@@ -219,7 +224,7 @@ private:
     const std::string Model_Path = "Code Files/Models/pen.obj";
     const std::string Texture_Path = "Code Files/Textures/texture2.jpg";
     const std::string Model_Path_2 = "Code Files/Models/viking_room.obj";
-    const std::string Texture_Path_2 = "Code Files/Textures/texture2.jpg";
+    const std::string Texture_Path_2 = "Code Files/Textures/viking_room.png";
 
     Model Model_1;
     Model Model_2;

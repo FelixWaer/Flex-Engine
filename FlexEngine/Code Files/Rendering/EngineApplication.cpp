@@ -72,9 +72,13 @@ void FlexEngine::initVulkan()
 {
     FlexTimer timer("Vulkan Initializing");
 
+    //Eventually move into a tick function
     Model_1.MeshPtr = &Mesh_1;
+    Model_1.set_TextureID(0);
     Model_3.MeshPtr = &Mesh_1;
+    Model_3.set_TextureID(0);
     Model_2.MeshPtr = &Mesh_2;
+    Model_2.set_TextureID(1);
 
     Model_1.update_Position(glm::vec3(0.f, 0.f, 0.f));
     Model_1.update_Position(glm::vec3(10.f, 0.f, 0.f));
@@ -96,9 +100,14 @@ void FlexEngine::initVulkan()
     create_ColorResources();
     create_DepthResources();
 	create_FrameBuffer();
-    create_TextureImage(Texture_Path);
+
+    //Functions creating the texture rework, so I don't have to run them for every texture. 
+    create_TextureImage(Texture_Path, &TextureImage, &TextureImageMemory);
+    create_TextureImage(Texture_Path_2, &TextureImage_2, &TextureImageMemory_2);
     create_TextureImageView();
-    create_TextureSampler();
+    create_TextureSampler(&TextureSampler);
+    create_TextureSampler(&TextureSampler_2);
+
     init_VertexBuffer();
 
     create_UboBuffer();
@@ -1005,12 +1014,13 @@ void FlexEngine::record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
 
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, GlobalGraphicsPipelineLayout, 0, 1,
         &GlobalDescriptorSets[CurrentFrame], 0, nullptr);
-
+    int i = 0;
     for (Model* fxeModel : FXE::ModelManager)
     {
         testcolor testcolor2;
         testcolor2.color = glm::vec4(0.f, 1.f, 0.f, 1.f);
         testcolor2.model = fxeModel->get_ModelMatrix();
+        testcolor2.textureIndex = fxeModel->get_TextureID();
 
         vkCmdPushConstants(CommandBuffers[CurrentFrame], GlobalGraphicsPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(testcolor), &testcolor2);
 
@@ -1019,6 +1029,7 @@ void FlexEngine::record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
         vkCmdBindIndexBuffer(commandBuffer, fxeModel->MeshPtr->IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(fxeModel->MeshPtr->Indices.size()), 1, 0, 0, 0);
+        i++;
     }
 
     vkCmdEndRenderPass(commandBuffer);
@@ -1082,9 +1093,14 @@ void FlexEngine::cleanup_TextureImage()
     vkDestroyImageView(Device, TextureImageView, nullptr);
     vkDestroyImage(Device, TextureImage, nullptr);
     vkFreeMemory(Device, TextureImageMemory, nullptr);
+
+    vkDestroySampler(Device, TextureSampler_2, nullptr);
+    vkDestroyImageView(Device, TextureImageView_2, nullptr);
+    vkDestroyImage(Device, TextureImage_2, nullptr);
+    vkFreeMemory(Device, TextureImageMemory_2, nullptr);
 }
 
-void FlexEngine::create_TextureImage(const std::string& texturePath)
+void FlexEngine::create_TextureImage(const std::string& texturePath, VkImage* textureImage, VkDeviceMemory* textureMemory)
 {
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load(texturePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -1108,23 +1124,24 @@ void FlexEngine::create_TextureImage(const std::string& texturePath)
     stbi_image_free(pixels);
 
     create_Image(texWidth, texHeight, MipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, TextureImage, TextureImageMemory);
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, *textureImage, *textureMemory);
 
-    transition_ImageLayout(TextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, MipLevels);
-    copy_BufferToImage(stagingBuffer, TextureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    transition_ImageLayout(*textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, MipLevels);
+    copy_BufferToImage(stagingBuffer, *textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 
     vkDestroyBuffer(Device, stagingBuffer, nullptr);
     vkFreeMemory(Device, stagingBufferMemory, nullptr);
 
-    generate_Mipmaps(TextureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, MipLevels);
+    generate_Mipmaps(*textureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, MipLevels);
 }
 
 void FlexEngine::create_TextureImageView()
 {
     TextureImageView = create_ImageView(TextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, MipLevels);
+    TextureImageView_2 = create_ImageView(TextureImage_2, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, MipLevels);
 }
 
-void FlexEngine::create_TextureSampler()
+void FlexEngine::create_TextureSampler(VkSampler* textureSampler)
 {
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -1148,7 +1165,7 @@ void FlexEngine::create_TextureSampler()
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = static_cast<float>(MipLevels);
 
-    if (vkCreateSampler(Device, &samplerInfo, nullptr, &TextureSampler) != VK_SUCCESS)
+    if (vkCreateSampler(Device, &samplerInfo, nullptr, textureSampler) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create texture sampler!");
     }
@@ -1602,10 +1619,14 @@ void FlexEngine::create_GlobalDescriptorSets()
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(UniformBufferObject);
 
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = TextureImageView;
-        imageInfo.sampler = TextureSampler;
+        VkDescriptorImageInfo imageInfo[2]{};
+        imageInfo[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo[0].imageView = TextureImageView;
+        imageInfo[0].sampler = TextureSampler;
+
+        imageInfo[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo[1].imageView = TextureImageView_2;
+        imageInfo[1].sampler = TextureSampler_2;
 
         std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
@@ -1622,8 +1643,9 @@ void FlexEngine::create_GlobalDescriptorSets()
         descriptorWrites[1].dstBinding = 1;
         descriptorWrites[1].dstArrayElement = 0;
         descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[1].descriptorCount = 1;
-        descriptorWrites[1].pImageInfo = &imageInfo;
+        //texture array size
+        descriptorWrites[1].descriptorCount = 2;
+        descriptorWrites[1].pImageInfo = imageInfo;
 
         vkUpdateDescriptorSets(Device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
@@ -1660,7 +1682,7 @@ void FlexEngine::create_GlobalDescriptorLayout()
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 1;
-    samplerLayoutBinding.descriptorCount = 1;
+    samplerLayoutBinding.descriptorCount = 2;
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;

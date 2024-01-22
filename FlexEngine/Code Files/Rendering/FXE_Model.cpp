@@ -39,3 +39,13 @@ void Model::update_Rotation(const glm::vec3& rotationVector)
 {
     ModelRotation = rotationVector;
 }
+
+int Model::get_TextureID() const
+{
+    return TextureID;
+}
+
+void Model::set_TextureID(int textureID)
+{
+    TextureID = textureID;
+}

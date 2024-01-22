@@ -30,7 +30,10 @@ public:
 	glm::vec3 get_Rotation();
 	void update_Position(const glm::vec3& positionVector);
 	void update_Rotation(const glm::vec3& rotationVector);
+	int get_TextureID() const;
+	void set_TextureID(int textureID);
 private:
 	glm::vec3 ModelPosition;
 	glm::vec3 ModelRotation;
+	int TextureID = 1;
 };
