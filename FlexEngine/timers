@@ -1,7 +1,7 @@
-window initializing: 57.0922ms
-Instance creation: 312.312ms
-Graphics pipeline initializing: 3.4718ms
-Model loading: 4476.92ms
-Model loading: 62.4627ms
-Model loading: 3954.09ms
-Vulkan Initializing: 9013.07ms
+window initializing: 216.69ms
+Instance creation: 144.548ms
+Graphics pipeline initializing: 1.1319ms
+Model loading: 2352.21ms
+Model loading: 37.1881ms
+Model loading: 2342.51ms
+Vulkan Initializing: 4976.49ms

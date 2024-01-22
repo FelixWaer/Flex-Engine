@@ -14,6 +14,9 @@
     <Filter Include="Source Files\Rendering">
       <UniqueIdentifier>{b8a7f58c-cfc2-45be-a60f-821a8ba09946}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Rendering\Modules">
+      <UniqueIdentifier>{b02885ae-920e-4051-8f31-1321065de96d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Code Files\main.cpp">
@@ -36,6 +39,9 @@
     </ClCompile>
     <ClCompile Include="Code Files\Rendering\FXE_Camera.cpp">
       <Filter>Source Files\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Code Files\Rendering\Modules\FlexBuffer.cpp">
+      <Filter>Source Files\Rendering\Modules</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -70,6 +76,9 @@
     </ClInclude>
     <ClInclude Include="Code Files\Rendering\FXE_Camera.h">
       <Filter>Source Files\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Code Files\Rendering\Modules\FlexBuffer.h">
+      <Filter>Source Files\Rendering\Modules</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

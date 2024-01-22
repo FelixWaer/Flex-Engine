@@ -23,23 +23,12 @@ public:
 	VkDeviceMemory VertexBufferMemory;
 	VkDeviceMemory IndexBufferMemory;
 
-	VkDescriptorSetLayout DescriptorSetLayout;
-	VkDescriptorPool DescriptorPool;
-	std::vector<VkDescriptorSet> DescriptorSets;
-
-
-	std::vector<VkBuffer> UniformBuffers;
-	std::vector<VkDeviceMemory> UniformBuffersMemory;
-	std::vector<void*> UniformBuffersMapped;
-
-	VkPipeline GraphicsPipeline;
-	VkPipelineLayout PipelineLayout;
-
+	glm::mat4 get_ModelMatrix();
 	glm::vec3 get_Position();
 	glm::vec3 get_Rotation();
 	void update_Position(const glm::vec3& positionVector);
 	void update_Rotation(const glm::vec3& rotationVector);
-	void update_UniformBuffer();
+
 private:
 	glm::vec3 ModelPosition;
 	glm::vec3 ModelRotation;

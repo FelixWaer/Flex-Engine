@@ -23,6 +23,18 @@ struct MeshPushConstants
     glm::mat4 RenderMatrix;
 };
 
+struct testcolor
+{
+    glm::mat4 model;
+    glm::vec4 color;
+};
+
+struct UniformBufferObject
+{
+    alignas(16) glm::mat4 view;
+    alignas(16) glm::mat4 proj;
+};
+
 class FlexEngine {
 public:
     void run() {
@@ -62,7 +74,6 @@ private:
     //Graphic Pipeline Methods
     void init_GraphicsPipeline();
     void cleanup_GraphicsPipeline();
-    void create_GraphicsPipeline(Model* fxeModel);
     void create_RenderPass(VkFormat swapChainImageFormat);
     VkShaderModule create_ShaderModule(const std::vector<char>& data);
 
@@ -107,10 +118,10 @@ private:
     void load_Model(Model* modelPtr);
     void create_VertexBuffer(Model* modelPtr);
     void create_IndexBuffer(Model* modelPtr);
-    void create_DescriptorSetLayout(Model* fxeModel);
-    void create_UniformBuffers(Model* fxeModel);
-    void create_DescriptorPool(Model* fxeModel);
-    void create_DescriptorSets(Model* fxeModel);
+    //void create_DescriptorSetLayout(Model* fxeModel);
+    //void create_UniformBuffers(Model* fxeModel);
+    //void create_DescriptorPool(Model* fxeModel);
+    //void create_DescriptorSets(Model* fxeModel);
 
     void copy_Buffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     void create_Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
@@ -133,7 +144,6 @@ private:
     VkQueue PresentQueue;
 
     //Graphics Pipeline Variables
-    //VkPipeline GraphicsPipeline;
     VkRenderPass RenderPass;
     VkPipelineLayout MeshPipelineLayout;
 
@@ -169,20 +179,38 @@ private:
 
     uint32_t MipLevels;
 
-    //VkDescriptorSetLayout DescriptorSetLayout;
-    //VkDescriptorPool DescriptorPool;
     VkCommandPool VertexCommandPool;
-
-    //std::vector<VkBuffer> UniformBuffers;
-    //std::vector<VkDeviceMemory> UniformBuffersMemory;
-    //std::vector<void*> UniformBuffersMapped;
-    //std::vector<VkDescriptorSet> DescriptorSets;
 
     //Multisampling
     VkSampleCountFlagBits MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     VkImage ColorImage;
     VkDeviceMemory ColorImageMemory;
     VkImageView ColorImageView;
+
+
+    /*
+     *Optimising time
+     *
+     */
+
+	std::vector<VkBuffer> UboBuffer;
+	std::vector<VkDeviceMemory> UboBufferMemory;
+	std::vector<void*> UboBufferMapped;
+	std::vector<VkDescriptorSet> GlobalDescriptorSets;
+    VkDescriptorSetLayout GlobalDescriptorSetLayout;
+	VkDescriptorPool GlobalDescriptorPool;
+
+    VkPipeline GlobalGraphicsPipeline;
+    VkPipelineLayout GlobalGraphicsPipelineLayout;
+
+    void create_UboBuffer();
+    void create_GlobalDescriptorSets();
+    void create_GlobalDescriptorPool();
+    void create_GlobalDescriptorLayout();
+    void create_GlobalGraphicsPipeline();
+
+    void update_UboBuffer();
+
 
     //Other Variables
     static const uint32_t WIDTH = 800;
