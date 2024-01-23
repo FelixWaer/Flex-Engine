@@ -13,27 +13,22 @@ public:
 	Model();
 	~Model() = default;
 
-	//std::string Model_Path = "Code Files/Models/pen.obj";
-	//std::string Texture_Path = "Code Files/Textures/texture2.jpg";
-
-	//std::vector<FXE::Vertex> Vertices;
-	//std::vector<uint32_t> Indices;
-	//VkBuffer VertexBuffer;
-	//VkBuffer IndexBuffer;
-	//VkDeviceMemory VertexBufferMemory;
-	//VkDeviceMemory IndexBufferMemory;
-
 	FlexMesh* MeshPtr;
 
 	glm::mat4 get_ModelMatrix();
 	glm::vec3 get_Position();
 	glm::vec3 get_Rotation();
+	glm::vec3 get_Scale();
 	void update_Position(const glm::vec3& positionVector);
 	void update_Rotation(const glm::vec3& rotationVector);
+	void update_Scale(const glm::vec3& scaleVector);
 	int get_TextureID() const;
 	void set_TextureID(int textureID);
+
+	void cleanup_Model();
 private:
 	glm::vec3 ModelPosition;
 	glm::vec3 ModelRotation;
+	glm::vec3 ModelScale;
 	int TextureID = 1;
 };

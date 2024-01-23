@@ -117,12 +117,6 @@ private:
     void cleanup_VertexBuffer();
 
     void create_VertexCommandPool();
-    //void load_Model(Model* modelPtr);
-    //void create_VertexBuffer(Model* modelPtr);
-    //void create_IndexBuffer(Model* modelPtr);
-
-    void create_MeshVertexBuffer(FlexMesh* fxeMesh);
-    void create_MeshIndexBuffer(FlexMesh* fxeMesh);
 
     void copy_Buffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     void create_Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
@@ -139,10 +133,12 @@ private:
     FXEDebugMessenger TheDebugMessenger;
 
     VkInstance Instance;
-    VkPhysicalDevice PhysicalDevice = VK_NULL_HANDLE;
-    VkDevice Device;
-    VkQueue GraphicsQueue;
     VkQueue PresentQueue;
+
+	VkDevice Device;
+	VkPhysicalDevice PhysicalDevice = VK_NULL_HANDLE;
+	VkQueue GraphicsQueue;
+	VkCommandPool CommandPool;
 
     //Graphics Pipeline Variables
     VkRenderPass RenderPass;
@@ -150,7 +146,6 @@ private:
 
     //Frame Creation Variables
     VkFormat SwapChainImageFormat;
-    VkCommandPool CommandPool;
 
     VkSwapchainKHR SwapChain;
     std::vector<VkImage> SwapChainImages;

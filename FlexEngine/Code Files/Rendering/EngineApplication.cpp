@@ -21,6 +21,7 @@
 #include "../FXE_ExtraFunctions.h"
 #include "../FlexLibrary/Flextimer.h"
 #include "FXE_RendererManager.h"
+#include "Modules/FlexBuffer.h"
 
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
@@ -85,11 +86,17 @@ void FlexEngine::initVulkan()
     Model_2.update_Position(glm::vec3(20.f, -10.f, 0.f));
     Model_3.update_Position(glm::vec3(0.0f, 0.0f, 20.f));
 
+    Model_1.update_Scale(glm::vec3(0.1f, 0.1f, 0.1f));
+    Model_2.update_Scale(glm::vec3(10.f, 10.f, 10.f));
+
     create_Instance();
     TheDebugMessenger.setup_DebugMessenger(Instance);
     TheWindow.createSurface(Instance);
     pick_PhysicalDevice();
+    FXE::EngineInformation.PhysicalDevice = PhysicalDevice;
     create_LogicalDevice();
+    FXE::EngineInformation.Device = Device;
+    FXE::EngineInformation.GraphicsQueue = GraphicsQueue;
     create_SwapChain();
     create_ImageViews();
 
@@ -97,6 +104,7 @@ void FlexEngine::initVulkan()
 
     init_GraphicsPipeline();
     create_CommandPool();
+    FXE::EngineInformation.CommandPool = CommandPool;
     create_ColorResources();
     create_DepthResources();
 	create_FrameBuffer();
@@ -168,27 +176,27 @@ void FlexEngine::mainLoop()
 
 		if (glfwGetKey(TheWindow.Window, GLFW_KEY_S) == GLFW_PRESS)
 		{
-            FXE::Camera.update_Camera(glm::vec3(0.f, 0.1f*DeltaTime, 0.f));
+            FXE::Camera.update_Camera(glm::vec3(0.f, 0.01f*DeltaTime, 0.f));
 		}
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_W) == GLFW_PRESS)
         {
-            FXE::Camera.update_Camera(glm::vec3(0.0f, -0.1f*DeltaTime, 0.f));
+            FXE::Camera.update_Camera(glm::vec3(0.0f, -0.01f*DeltaTime, 0.f));
         }
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_A) == GLFW_PRESS)
         {
-            FXE::Camera.update_Camera(glm::vec3(0.1f*DeltaTime, 0.f, 0.f));
+            FXE::Camera.update_Camera(glm::vec3(0.01f*DeltaTime, 0.f, 0.f));
         }
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_D) == GLFW_PRESS)
         {
-            FXE::Camera.update_Camera(glm::vec3(-0.1f*DeltaTime, 0.f, 0.f));
+            FXE::Camera.update_Camera(glm::vec3(-0.01f*DeltaTime, 0.f, 0.f));
         }
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_Q) == GLFW_PRESS)
         {
-            FXE::Camera.update_Camera(glm::vec3(0.f, 0.f, 0.1f*DeltaTime));
+            FXE::Camera.update_Camera(glm::vec3(0.f, 0.f, 0.01f*DeltaTime));
         }
         if (glfwGetKey(TheWindow.Window, GLFW_KEY_E) == GLFW_PRESS)
         {
-            FXE::Camera.update_Camera(glm::vec3(0.f, 0.f, -0.1f*DeltaTime));
+            FXE::Camera.update_Camera(glm::vec3(0.f, 0.f, -0.01f*DeltaTime));
         }
 
         auto currentTime = std::chrono::high_resolution_clock::now();
@@ -204,6 +212,10 @@ void FlexEngine::cleanup()
     cleanup_SwapChain();
 
     cleanup_TextureImage();
+    for (FlexMesh* fxeMesh : FXE::MeshManager)
+    {
+        fxeMesh->cleanup_Mesh();
+    }
     cleanup_VertexBuffer();
     cleanup_GraphicsPipeline();
     cleanup_Semaphores();
@@ -1024,10 +1036,10 @@ void FlexEngine::record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
 
         vkCmdPushConstants(CommandBuffers[CurrentFrame], GlobalGraphicsPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(testcolor), &testcolor2);
 
-        VkBuffer vertexBuffers[] = { fxeModel->MeshPtr->VertexBuffer };
+        VkBuffer vertexBuffers[] = { fxeModel->MeshPtr->VertexBuffer.Buffer };
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, fxeModel->MeshPtr->IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(commandBuffer, fxeModel->MeshPtr->IndexBuffer.Buffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(fxeModel->MeshPtr->Indices.size()), 1, 0, 0, 0);
         i++;
     }
@@ -1114,6 +1126,7 @@ void FlexEngine::create_TextureImage(const std::string& texturePath, VkImage* te
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
+
     create_Buffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
     void* data;
@@ -1354,41 +1367,14 @@ void FlexEngine::init_VertexBuffer()
     create_VertexCommandPool();
     Mesh_1.init_Mesh("Code Files/Models/pen.obj");
     Mesh_2.init_Mesh("Code Files/Models/viking_room.obj");
-    create_MeshVertexBuffer(&Mesh_1);
-    create_MeshIndexBuffer(&Mesh_1);
-    create_MeshVertexBuffer(&Mesh_2);
-    create_MeshIndexBuffer(&Mesh_2);
-    
-    //for (Model* fxeModel : FXE::ModelManager)
-    //{
-    //    load_Model(fxeModel);
-    //    create_VertexBuffer(fxeModel);
-    //    create_IndexBuffer(fxeModel);
-    //}
 }
 
 void FlexEngine::cleanup_VertexBuffer()
 {
-	//for (Model* fxeModel : FXE::ModelManager)
-	//{
- //       vkDestroyBuffer(Device, fxeModel->IndexBuffer, nullptr);
- //       vkFreeMemory(Device, fxeModel->IndexBufferMemory, nullptr);
- //       vkDestroyBuffer(Device, fxeModel->VertexBuffer, nullptr);
- //       vkFreeMemory(Device, fxeModel->VertexBufferMemory, nullptr);
-	//}
-
-	vkDestroyBuffer(Device, Mesh_1.IndexBuffer, nullptr);
-	vkFreeMemory(Device, Mesh_1.IndexBufferMemory, nullptr);
-	vkDestroyBuffer(Device, Mesh_1.VertexBuffer, nullptr);
-	vkFreeMemory(Device, Mesh_1.VertexBufferMemory, nullptr);
-    vkDestroyBuffer(Device, Mesh_2.IndexBuffer, nullptr);
-    vkFreeMemory(Device, Mesh_2.IndexBufferMemory, nullptr);
-    vkDestroyBuffer(Device, Mesh_2.VertexBuffer, nullptr);
-    vkFreeMemory(Device, Mesh_2.VertexBufferMemory, nullptr);
-
     vkDestroyCommandPool(Device, VertexCommandPool, nullptr);
     vkDestroyDescriptorPool(Device, GlobalDescriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(Device, GlobalDescriptorSetLayout, nullptr);
+
     for (uint32_t i = 0; i < MaxFramesInFlight; i++)
     {
         vkDestroyBuffer(Device, UboBuffer[i], nullptr);
@@ -1409,66 +1395,6 @@ void FlexEngine::create_VertexCommandPool()
     {
         throw std::runtime_error("failed to create command pool!");
     }
-}
-
-void FlexEngine::create_MeshVertexBuffer(FlexMesh* fxeMesh)
-{
-    VkDeviceSize bufferSize = sizeof(fxeMesh->Vertices[0]) * fxeMesh->Vertices.size();
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    create_Buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-
-    void* data;
-    vkMapMemory(Device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, fxeMesh->Vertices.data(), bufferSize);
-    vkUnmapMemory(Device, stagingBufferMemory);
-
-    create_Buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, fxeMesh->VertexBuffer, fxeMesh->VertexBufferMemory);
-
-    copy_Buffer(stagingBuffer, fxeMesh->VertexBuffer, bufferSize);
-
-    vkDestroyBuffer(Device, stagingBuffer, nullptr);
-    vkFreeMemory(Device, stagingBufferMemory, nullptr);
-}
-
-void FlexEngine::create_MeshIndexBuffer(FlexMesh* fxeMesh)
-{
-    VkDeviceSize bufferSize = sizeof(fxeMesh->Indices[0]) * fxeMesh->Indices.size();
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    create_Buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-
-    void* data;
-    vkMapMemory(Device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, fxeMesh->Indices.data(), bufferSize);
-    vkUnmapMemory(Device, stagingBufferMemory);
-
-    create_Buffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, fxeMesh->IndexBuffer, fxeMesh->IndexBufferMemory);
-
-    copy_Buffer(stagingBuffer, fxeMesh->IndexBuffer, bufferSize);
-
-    vkDestroyBuffer(Device, stagingBuffer, nullptr);
-    vkFreeMemory(Device, stagingBufferMemory, nullptr);
-}
-
-void FlexEngine::copy_Buffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
-{
-    VkCommandBuffer commandBuffer = begin_SingleTimeCommands();
-
-    VkBufferCopy copyRegion{};
-    copyRegion.srcOffset = 0;
-    copyRegion.dstOffset = 0;
-    copyRegion.size = size;
-    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-
-    end_SingleTimeCommands(commandBuffer);
 }
 
 
@@ -1587,6 +1513,7 @@ void FlexEngine::create_UboBuffer()
     UboBuffer.resize(MaxFramesInFlight);
     UboBufferMemory.resize(MaxFramesInFlight);
     UboBufferMapped.resize(MaxFramesInFlight);
+
 
     for (uint32_t i = 0; i < MaxFramesInFlight; i++)
     {

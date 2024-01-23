@@ -4,17 +4,47 @@
 #include <tiny_obj_loader.h>
 
 #include "../../FlexLibrary/Flextimer.h"
+#include "../EngineApplication.h"
+#include "../FXE_RendererManager.h"
 
 FlexMesh::FlexMesh(std::string modelPath)
 {
+    FXE::MeshManager.emplace_back(this);
     ModelPath = modelPath;
     load_Mesh();
 }
 
 void FlexMesh::init_Mesh(std::string modelPath)
 {
+    FXE::MeshManager.emplace_back(this);
     ModelPath = modelPath;
     load_Mesh();
+
+    BufferCreateInfo vertexBufferInfo;
+    vertexBufferInfo.BufferSize = sizeof(Vertices[0]) * Vertices.size();
+    vertexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    vertexBufferInfo.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    vertexBufferInfo.usage_2 = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    vertexBufferInfo.properties_2 = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    vertexBufferInfo.Data = Vertices.data();
+
+    VertexBuffer.init_Buffer(vertexBufferInfo);
+
+    BufferCreateInfo IndexBufferInfo;
+    IndexBufferInfo.BufferSize = sizeof(Indices[0]) * Indices.size();
+    IndexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    IndexBufferInfo.properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    IndexBufferInfo.usage_2 = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    IndexBufferInfo.properties_2 = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    IndexBufferInfo.Data = Indices.data();
+    
+    IndexBuffer.init_Buffer(IndexBufferInfo);
+}
+
+void FlexMesh::cleanup_Mesh()
+{
+    VertexBuffer.cleanup_Buffer();
+    IndexBuffer.cleanup_Buffer();
 }
 
 
