@@ -47,7 +47,6 @@ void FlexMesh::cleanup_Mesh()
     IndexBuffer.cleanup_Buffer();
 }
 
-
 void FlexMesh::load_Mesh()
 {
     FlexTimer timer("Model loading");

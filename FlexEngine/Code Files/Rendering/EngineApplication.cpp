@@ -38,7 +38,6 @@ double tempYpos = 0.f;
 
 float rotateZAxes = 0.f;
 float rotateXAxes = 0.f;
-float constanRotation = 0.f;
 
 float DeltaTime = 0.0f;
 bool ScrollingUp = false;
@@ -80,14 +79,17 @@ void FlexEngine::initVulkan()
     Model_3.set_TextureID(0);
     Model_2.MeshPtr = &Mesh_2;
     Model_2.set_TextureID(1);
+    Model_4.MeshPtr = &Mesh_3;
+    Model_4.set_TextureID(0);
+    Model_4.ID = 1;
 
-    Model_1.update_Position(glm::vec3(0.f, 0.f, 0.f));
-    Model_1.update_Position(glm::vec3(10.f, 0.f, 0.f));
-    Model_2.update_Position(glm::vec3(20.f, -10.f, 0.f));
-    Model_3.update_Position(glm::vec3(0.0f, 0.0f, 20.f));
+    Model_1.update_Position(glm::vec3(10.f, 0.f, -5.f));
+    Model_2.update_Position(glm::vec3(0.f, -10.f, -9.f));
+    Model_3.update_Position(glm::vec3(-10.0f, 0.0f, 0.f));
+    Model_4.update_Position(glm::vec3(0.f, -10.f, -11.f));
 
-    Model_1.update_Scale(glm::vec3(0.1f, 0.1f, 0.1f));
     Model_2.update_Scale(glm::vec3(10.f, 10.f, 10.f));
+    Model_4.update_Scale(glm::vec3(100.f, 100.f, 1.f));
 
     create_Instance();
     TheDebugMessenger.setup_DebugMessenger(Instance);
@@ -134,7 +136,6 @@ void FlexEngine::mainLoop()
 
 		glfwPollEvents();
         draw_Frame();
-        constanRotation += 0.1;
 		if (glfwGetMouseButton(TheWindow.Window, 0) == GLFW_PRESS)
 		{
             glfwGetCursorPos(TheWindow.Window, &Xpos, &Ypos);
@@ -160,7 +161,7 @@ void FlexEngine::mainLoop()
 
             Model_1.update_Rotation(glm::vec3(rotateXAxes, 0.f, rotateZAxes));
 		}
-        
+
         glfwSetScrollCallback(TheWindow.Window, scroll_callback);
 
         if (ScrollingUp == true)
@@ -202,7 +203,8 @@ void FlexEngine::mainLoop()
         auto currentTime = std::chrono::high_resolution_clock::now();
         
         DeltaTime = std::chrono::duration<float, std::chrono::milliseconds::period>(currentTime - startTime).count();
-        //Model_1.update_Rotation(glm::vec3(constantRotation, 0.0f, 0.0f));
+        std::cout << 1000.f / DeltaTime << std::endl;
+        std::cout << 1000.f / DeltaTime << std::endl;
 	}
     vkDeviceWaitIdle(Device);
 }
@@ -1026,22 +1028,21 @@ void FlexEngine::record_CommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
 
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, GlobalGraphicsPipelineLayout, 0, 1,
         &GlobalDescriptorSets[CurrentFrame], 0, nullptr);
-    int i = 0;
+
     for (Model* fxeModel : FXE::ModelManager)
     {
-        testcolor testcolor2;
+        pushData testcolor2;
         testcolor2.color = glm::vec4(0.f, 1.f, 0.f, 1.f);
         testcolor2.model = fxeModel->get_ModelMatrix();
         testcolor2.textureIndex = fxeModel->get_TextureID();
 
-        vkCmdPushConstants(CommandBuffers[CurrentFrame], GlobalGraphicsPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(testcolor), &testcolor2);
+        vkCmdPushConstants(CommandBuffers[CurrentFrame], GlobalGraphicsPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pushData), &testcolor2);
 
         VkBuffer vertexBuffers[] = { fxeModel->MeshPtr->VertexBuffer.Buffer };
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
         vkCmdBindIndexBuffer(commandBuffer, fxeModel->MeshPtr->IndexBuffer.Buffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(fxeModel->MeshPtr->Indices.size()), 1, 0, 0, 0);
-        i++;
     }
 
     vkCmdEndRenderPass(commandBuffer);
@@ -1367,6 +1368,7 @@ void FlexEngine::init_VertexBuffer()
     create_VertexCommandPool();
     Mesh_1.init_Mesh("Code Files/Models/pen.obj");
     Mesh_2.init_Mesh("Code Files/Models/viking_room.obj");
+    Mesh_3.init_Mesh("Code Files/Models/Cube.obj");
 }
 
 void FlexEngine::cleanup_VertexBuffer()
@@ -1735,7 +1737,7 @@ void FlexEngine::create_GlobalGraphicsPipeline()
     VkPushConstantRange pushConstant{};
     pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     pushConstant.offset = 0;
-    pushConstant.size = sizeof(testcolor);
+    pushConstant.size = sizeof(pushData);
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -1779,6 +1781,9 @@ void FlexEngine::create_GlobalGraphicsPipeline()
 void FlexEngine::update_UboBuffer()
 {
     UniformBufferObject ubo{};
+
+    int xPos = 0;
+    int yPos = 0;
 
     ubo.view = FXE::Camera.get_CameraView();
     ubo.proj = FXE::Camera.get_CameraProjection();

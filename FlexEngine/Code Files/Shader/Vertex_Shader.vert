@@ -5,7 +5,7 @@ layout(binding = 0) uniform UniformBufferObject {
     mat4 proj;
 } ubo;
 
-layout( push_constant ) uniform testcolor 
+layout( push_constant ) uniform pushData 
 {
     mat4 model;
     vec4 color;

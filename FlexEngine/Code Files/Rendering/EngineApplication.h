@@ -18,13 +18,7 @@
 #include "FXE_Camera.h"
 #include "Modules/FXE_Mesh.h"
 
-struct MeshPushConstants
-{
-    glm::vec4 Data;
-    glm::mat4 RenderMatrix;
-};
-
-struct testcolor
+struct pushData
 {
     glm::mat4 model;
     glm::vec4 color;
@@ -33,7 +27,7 @@ struct testcolor
 
 struct UniformBufferObject
 {
-    alignas(16) glm::mat4 view;
+	alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
 };
 
@@ -224,7 +218,9 @@ private:
     Model Model_1;
     Model Model_2;
     Model Model_3;
+    Model Model_4;
 
     FlexMesh Mesh_1;
     FlexMesh Mesh_2;
+    FlexMesh Mesh_3;
 };

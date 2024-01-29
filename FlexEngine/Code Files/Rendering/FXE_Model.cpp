@@ -22,6 +22,15 @@ glm::mat4 Model::get_ModelMatrix()
     return modelMatrix;
 }
 
+glm::mat4 Model::get_ModelMatrixInstance(glm::vec3 positionVector)
+{
+    glm::mat4 modelMatrix = glm::rotate(glm::translate(glm::mat4(1.0f), positionVector), glm::radians(ModelRotation.z), glm::vec3(0.0f, 0.0f, 1.0f)) *
+        glm::rotate(glm::mat4(1.0f), glm::radians(ModelRotation.x), glm::vec3(1.0f, 0.0f, 0.0f)) *
+        glm::rotate(glm::mat4(1.0f), glm::radians(ModelRotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+    modelMatrix = glm::scale(modelMatrix, ModelScale);
+    return modelMatrix;
+}
+
 void Model::cleanup_Model()
 {
 }

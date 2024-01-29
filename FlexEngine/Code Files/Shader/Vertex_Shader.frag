@@ -7,7 +7,7 @@ layout(location = 1) in vec2 fragTexCoordinates;
 
 layout(location = 0) out vec4 outColor;
 
-layout( push_constant ) uniform testcolor 
+layout( push_constant ) uniform pushData 
 {
     mat4 model;
     vec4 color;

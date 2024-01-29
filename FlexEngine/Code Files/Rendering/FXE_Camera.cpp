@@ -21,6 +21,11 @@ void FlexCamera::update_CameraDistance(float distance)
 	
 }
 
+void FlexCamera::rotate_Camera(glm::vec3 rotationVector)
+{
+
+}
+
 glm::mat4 FlexCamera::get_CameraView()
 {
 	return glm::lookAt(CameraEye, CameraCenter, CameraUp);
@@ -28,5 +33,5 @@ glm::mat4 FlexCamera::get_CameraView()
 
 glm::mat4 FlexCamera::get_CameraProjection()
 {
-	return glm::perspective(glm::radians(90.0f), static_cast<float>(FXE::Width) / static_cast<float>(FXE::Height), 0.1f, 100.0f);
+	return glm::perspective(glm::radians(90.0f), static_cast<float>(FXE::Width) / static_cast<float>(FXE::Height), 0.1f, 200.0f);
 }

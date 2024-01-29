@@ -16,6 +16,7 @@ public:
 	FlexMesh* MeshPtr;
 
 	glm::mat4 get_ModelMatrix();
+	glm::mat4 get_ModelMatrixInstance(glm::vec3 positionVector);
 	glm::vec3 get_Position();
 	glm::vec3 get_Rotation();
 	glm::vec3 get_Scale();
@@ -26,6 +27,7 @@ public:
 	void set_TextureID(int textureID);
 
 	void cleanup_Model();
+	int ID = 0;
 private:
 	glm::vec3 ModelPosition;
 	glm::vec3 ModelRotation;
