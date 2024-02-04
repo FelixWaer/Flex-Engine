@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Code Files\FlexEngine.cpp" />
     <ClCompile Include="Code Files\FlexLibrary\FlexTimer.cpp" />
     <ClCompile Include="Code Files\FXE_DebugMessenger.cpp" />
     <ClCompile Include="Code Files\FXE_Window.cpp" />
@@ -35,6 +36,7 @@
     <None Include="Code Files\Shader\Vertex_Shader.vert" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Code Files\FlexEngine.h" />
     <ClInclude Include="Code Files\FlexLibrary\Flextimer.h" />
     <ClInclude Include="Code Files\FXE_ExtraFunctions.h" />
     <ClInclude Include="Code Files\FXE_DebugMessenger.h" />

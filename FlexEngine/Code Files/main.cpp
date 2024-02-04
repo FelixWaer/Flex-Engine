@@ -1,15 +1,17 @@
 #include <iostream>
 
-#include "Rendering/EngineApplication.h"
+#include "FlexEngine.h"
 
 
 int main()
 {
-    FlexEngine app;
+    FXE::FlexEngine Engine;
 
     try 
     {
-        app.run();
+        Engine.init_Engine();
+        Engine.game_Tick();
+        Engine.cleanup_Engine();
     }
 
     catch (const std::exception& e) 
