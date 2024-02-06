@@ -11,9 +11,8 @@ class Model
 {
 public:
 	Model();
-	~Model() = default;
 
-	FlexMesh* MeshPtr;
+	void draw_Model(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout);
 
 	glm::mat4 get_ModelMatrix();
 	glm::mat4 get_ModelMatrixInstance(glm::vec3 positionVector);
@@ -23,14 +22,16 @@ public:
 	void update_Position(const glm::vec3& positionVector);
 	void update_Rotation(const glm::vec3& rotationVector);
 	void update_Scale(const glm::vec3& scaleVector);
+	FlexMesh* get_Mesh();
+	void set_Mesh(FlexMesh* meshPtr);
 	int get_TextureID() const;
 	void set_TextureID(int textureID);
 
-	void cleanup_Model();
-	int ID = 0;
+	FlexMesh* MeshPtr;
 private:
 	glm::vec3 ModelPosition;
 	glm::vec3 ModelRotation;
 	glm::vec3 ModelScale;
 	int TextureID = 1;
+	int ID = 0;
 };

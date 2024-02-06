@@ -9,7 +9,7 @@ namespace FXE
 	public:
 		FlexEngine() = default;
 
-		FXE::Renderer GameRenderer;
+		Renderer GameRenderer;
 
 		void init_Engine();
 		void cleanup_Engine();
